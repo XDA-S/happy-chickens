@@ -720,85 +720,123 @@ function playNuoNuoMelody() {
 // ===== Chicken Sounds (synthesized) =====
 function playRoosterSound() {
   const c = getAC(), t = c.currentTime;
-  // Rising preparatory sawtooth: 320→560Hz
+  // Part 1: "cock-a" — sharp bark-like rising sound (sine + triangle)
   const o1 = c.createOscillator(), g1 = c.createGain();
-  o1.type = 'sawtooth';
-  o1.frequency.setValueAtTime(320, t);
-  o1.frequency.linearRampToValueAtTime(560, t + 0.25);
+  o1.type = 'sine';
+  o1.frequency.setValueAtTime(500, t);
+  o1.frequency.linearRampToValueAtTime(800, t + 0.15);
+  o1.frequency.linearRampToValueAtTime(750, t + 0.25);
   g1.gain.setValueAtTime(0, t);
-  g1.gain.linearRampToValueAtTime(0.18, t + 0.05);
-  g1.gain.setValueAtTime(0.18, t + 0.2);
-  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+  g1.gain.linearRampToValueAtTime(0.22, t + 0.02);
+  g1.gain.setValueAtTime(0.22, t + 0.15);
+  g1.gain.linearRampToValueAtTime(0.12, t + 0.25);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
   o1.connect(g1); g1.connect(c.destination);
-  o1.start(t); o1.stop(t + 0.35);
-  // Main crow: 900→600Hz sawtooth + harmonic
+  o1.start(t); o1.stop(t + 0.32);
+  // Triangle harmonic for body
+  const o1h = c.createOscillator(), g1h = c.createGain();
+  o1h.type = 'triangle';
+  o1h.frequency.setValueAtTime(1000, t);
+  o1h.frequency.linearRampToValueAtTime(1600, t + 0.15);
+  g1h.gain.setValueAtTime(0, t);
+  g1h.gain.linearRampToValueAtTime(0.06, t + 0.02);
+  g1h.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+  o1h.connect(g1h); g1h.connect(c.destination);
+  o1h.start(t); o1h.stop(t + 0.32);
+
+  // Part 2: "doo-doo" — rhythmic main crow (sine with vibrato)
   setTimeout(() => {
     const t2 = c.currentTime;
     const o2 = c.createOscillator(), g2 = c.createGain();
-    o2.type = 'sawtooth';
-    o2.frequency.setValueAtTime(900, t2);
-    o2.frequency.linearRampToValueAtTime(600, t2 + 0.5);
+    o2.type = 'sine';
+    o2.frequency.setValueAtTime(1200, t2);
+    // Add vibrato via LFO
+    const lfo = c.createOscillator(), lfoG = c.createGain();
+    lfo.frequency.value = 8;
+    lfoG.gain.value = 30;
+    lfo.connect(lfoG); lfoG.connect(o2.frequency);
+    lfo.start(t2); lfo.stop(t2 + 0.7);
+    // Rhythmic amplitude: two "doo" beats
     g2.gain.setValueAtTime(0, t2);
-    g2.gain.linearRampToValueAtTime(0.25, t2 + 0.06);
-    g2.gain.setValueAtTime(0.25, t2 + 0.35);
-    g2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.55);
+    g2.gain.linearRampToValueAtTime(0.2, t2 + 0.03);
+    g2.gain.setValueAtTime(0.2, t2 + 0.12);
+    g2.gain.linearRampToValueAtTime(0.05, t2 + 0.18);
+    g2.gain.linearRampToValueAtTime(0.18, t2 + 0.22);
+    g2.gain.setValueAtTime(0.18, t2 + 0.38);
+    g2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.65);
+    o2.frequency.setValueAtTime(1100, t2 + 0.35);
+    o2.frequency.linearRampToValueAtTime(900, t2 + 0.65);
     o2.connect(g2); g2.connect(c.destination);
-    o2.start(t2); o2.stop(t2 + 0.55);
-    // Harmonic
+    o2.start(t2); o2.stop(t2 + 0.65);
+    // Triangle harmonic for warmth
     const o2h = c.createOscillator(), g2h = c.createGain();
-    o2h.type = 'sawtooth';
-    o2h.frequency.setValueAtTime(1800, t2);
-    o2h.frequency.linearRampToValueAtTime(1200, t2 + 0.5);
+    o2h.type = 'triangle';
+    o2h.frequency.setValueAtTime(2400, t2);
+    o2h.frequency.linearRampToValueAtTime(1800, t2 + 0.65);
     g2h.gain.setValueAtTime(0, t2);
-    g2h.gain.linearRampToValueAtTime(0.08, t2 + 0.06);
-    g2h.gain.exponentialRampToValueAtTime(0.001, t2 + 0.55);
+    g2h.gain.linearRampToValueAtTime(0.04, t2 + 0.03);
+    g2h.gain.exponentialRampToValueAtTime(0.001, t2 + 0.65);
     o2h.connect(g2h); g2h.connect(c.destination);
-    o2h.start(t2); o2h.stop(t2 + 0.55);
-  }, 250);
-  // Trailing: 500→380Hz
+    o2h.start(t2); o2h.stop(t2 + 0.65);
+  }, 280);
+
+  // Part 3: trailing "doo" — lower, fading
   setTimeout(() => {
     const t3 = c.currentTime;
     const o3 = c.createOscillator(), g3 = c.createGain();
-    o3.type = 'sawtooth';
-    o3.frequency.setValueAtTime(500, t3);
-    o3.frequency.linearRampToValueAtTime(380, t3 + 0.3);
+    o3.type = 'sine';
+    o3.frequency.setValueAtTime(700, t3);
+    o3.frequency.linearRampToValueAtTime(420, t3 + 0.4);
     g3.gain.setValueAtTime(0, t3);
-    g3.gain.linearRampToValueAtTime(0.12, t3 + 0.04);
-    g3.gain.exponentialRampToValueAtTime(0.001, t3 + 0.35);
+    g3.gain.linearRampToValueAtTime(0.14, t3 + 0.03);
+    g3.gain.exponentialRampToValueAtTime(0.001, t3 + 0.45);
     o3.connect(g3); g3.connect(c.destination);
-    o3.start(t3); o3.stop(t3 + 0.35);
-  }, 800);
+    o3.start(t3); o3.stop(t3 + 0.45);
+  }, 900);
 }
 
 function playHenSound() {
   const c = getAC(), t = c.currentTime;
-  // Series of 3-5 square wave clucks
+  // Part 1: rapid "cluck cluck cluck" (3-5 short percussive sounds)
   const cluckCount = 3 + Math.floor(Math.random() * 3);
   for (let i = 0; i < cluckCount; i++) {
-    const start = t + i * 0.12;
-    const freq = 800 + Math.random() * 300;
+    const start = t + i * 0.1;
+    const freq = 600 + Math.random() * 200;
+    // Sine cluck (softer than square)
     const o = c.createOscillator(), g = c.createGain();
-    o.type = 'square';
+    o.type = 'sine';
     o.frequency.setValueAtTime(freq, start);
+    o.frequency.linearRampToValueAtTime(freq * 0.85, start + 0.06);
     g.gain.setValueAtTime(0, start);
-    g.gain.linearRampToValueAtTime(0.15, start + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.001, start + 0.08);
+    g.gain.linearRampToValueAtTime(0.18, start + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, start + 0.06);
     o.connect(g); g.connect(c.destination);
-    o.start(start); o.stop(start + 0.08);
-    // Bandpass noise click
-    filteredNoise(0.06, 0.08, freq - 200, freq + 200, i * 0.12);
+    o.start(start); o.stop(start + 0.06);
+    // Noise click for attack transient
+    filteredNoise(0.04, 0.06, 1500, 3500, i * 0.1);
   }
-  // Egg-laying satisfaction: 130Hz sine + noise
-  setTimeout(() => {
-    const t2 = c.currentTime;
-    const o = c.createOscillator(), g = c.createGain();
-    o.type = 'sine'; o.frequency.value = 130;
-    g.gain.setValueAtTime(0.2, t2);
-    g.gain.exponentialRampToValueAtTime(0.001, t2 + 0.15);
-    o.connect(g); g.connect(c.destination);
-    o.start(t2); o.stop(t2 + 0.15);
-    filteredNoise(0.1, 0.06, 2000, 6000, 0);
-  }, 1100);
+  // Part 2: "BAAAAWK!" — longer, louder, pitch drops (the 哒 sound)
+  const bawkStart = t + cluckCount * 0.1 + 0.08;
+  const o2 = c.createOscillator(), g2 = c.createGain();
+  o2.type = 'sine';
+  o2.frequency.setValueAtTime(550, bawkStart);
+  o2.frequency.linearRampToValueAtTime(380, bawkStart + 0.25);
+  g2.gain.setValueAtTime(0, bawkStart);
+  g2.gain.linearRampToValueAtTime(0.25, bawkStart + 0.02);
+  g2.gain.setValueAtTime(0.25, bawkStart + 0.15);
+  g2.gain.exponentialRampToValueAtTime(0.001, bawkStart + 0.3);
+  o2.connect(g2); g2.connect(c.destination);
+  o2.start(bawkStart); o2.stop(bawkStart + 0.3);
+  // Triangle body for the bawk
+  const o2h = c.createOscillator(), g2h = c.createGain();
+  o2h.type = 'triangle';
+  o2h.frequency.setValueAtTime(1100, bawkStart);
+  o2h.frequency.linearRampToValueAtTime(760, bawkStart + 0.25);
+  g2h.gain.setValueAtTime(0, bawkStart);
+  g2h.gain.linearRampToValueAtTime(0.06, bawkStart + 0.02);
+  g2h.gain.exponentialRampToValueAtTime(0.001, bawkStart + 0.3);
+  o2h.connect(g2h); g2h.connect(c.destination);
+  o2h.start(bawkStart); o2h.stop(bawkStart + 0.3);
 }
 
 function playChickSound() {
