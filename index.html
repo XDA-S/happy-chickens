@@ -966,6 +966,22 @@ function startBgMusic() {
   scheduleFarmAnimals();
 }
 
+// Resume audio after screen lock/unlock or tab switch
+document.addEventListener('visibilitychange', function() {
+  if (!audioInited || !audioCtx) return;
+  if (document.visibilityState === 'visible' && audioCtx.state === 'suspended') {
+    audioCtx.resume().then(() => {
+      // BGM oscillators and wind buffer are stopped after suspend, restart them
+      try {
+        playBgMelody();
+        startFarmWind();
+        startFarmAmbient();
+        scheduleFarmAnimals();
+      } catch(e) {}
+    });
+  }
+});
+
 function scheduleFarmAnimals() {
   // Play a random farm sound every 15-30 seconds
   const delay = 15000 + Math.random() * 15000;
