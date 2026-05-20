@@ -656,41 +656,29 @@ function createPost(parent, x, y, h) {
   parent.appendChild(p);
 }
 
-// ===== Audio Helpers =====
-const SND_ROOSTER = 'data:audio/mp4;base64,AAAAHGZ0eXBNNEEgAAAAAE00QSBtcDQyaXNvbQAAA7Jtb292AAAAbG12aGQAAAAA5jI9mOYyPZgAAC7gAABkAAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAACRHRyYWsAAABcdGtoZAAAAAfmMj2Y5jI9mAAAAAEAAAAAAABkAAAAAAAAAAAAAAAAAAEAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAeBtZGlhAAAAIG1kaGQAAAAA5jI9mOYyPZgAAC7gAABkAAAAAAAAAAAiaGRscgAAAAAAAAAAc291bgAAAAAAAAAAAAAAAAAAAAABlm1pbmYAAAAQc21oZAAAAAAAAAAAAAAAJGRpbmYAAAAcZHJlZgAAAAAAAAABAAAADHVybCAAAAABAAABWnN0YmwAAAB2c3RzZAAAAAAAAAABAAAAZm1wNGEAAAAAAAAAAQAAAAAAAAAAAAIAEAAAAAAu4AAAAAAAM2VzZHMAAAAAA4CAgCIAAAAEgICAFEAUABgAAACcgAAAfQAFgICAAhSQBoCAgAECAAAAD3NidGQAAAAASTE2AAAAGHN0dHMAAAAAAAAAAQAAABkAAAQAAAAAKHN0c2MAAAAAAAAAAgAAAAEAAAAGAAAAAQAAAAUAAAABAAAAAQAAAHhzdHN6AAAAAAAAAAAAAAAZAAAABwAAAN4AAAHdAAABPgAAAbwAAAGXAAABhwAAA1oAAAJuAAABWwAAAWUAAAGYAAABbgAAAXEAAAG3AAABlwAAASQAAAELAAAA+AAAAQkAAAD6AAABiAAAAdEAAAHUAAABfgAAACRzdGNvAAAAAAAAAAUAABAAAAAXUwAAIvoAACtWAAAzfgAAAPp1ZHRhAAAA8m1ldGEAAAAAAAAAImhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAAAMRpbHN0AAAAvC0tLS0AAAAcbWVhbgAAAABjb20uYXBwbGUuaVR1bmVzAAAAFG5hbWUAAAAAaVR1blNNUEIAAACEZGF0YQAAAAEAAAAAIDAwMDAwMDAwIDAwMDAwODQwIDAwMDAwMkIwIDAwMDAwMDAwMDAwMDU5MTAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAAAAwqZnJlZQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-const SND_CLUCK = 'data:audio/mp4;base64,AAAAHGZ0eXBNNEEgAAAAAE00QSBtcDQyaXNvbQAAA+5tb292AAAAbG12aGQAAAAA5jI9mOYyPZgAAC7gAACYAAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAACgHRyYWsAAABcdGtoZAAAAAfmMj2Y5jI9mAAAAAEAAAAAAACYAAAAAAAAAAAAAAAAAAEAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAhxtZGlhAAAAIG1kaGQAAAAA5jI9mOYyPZgAAC7gAACYAAAAAAAAAAAiaGRscgAAAAAAAAAAc291bgAAAAAAAAAAAAAAAAAAAAAB0m1pbmYAAAAQc21oZAAAAAAAAAAAAAAAJGRpbmYAAAAcZHJlZgAAAAAAAAABAAAADHVybCAAAAABAAABlnN0YmwAAAB2c3RzZAAAAAAAAAABAAAAZm1wNGEAAAAAAAAAAQAAAAAAAAAAAAIAEAAAAAAu4AAAAAAAM2VzZHMAAAAAA4CAgCIAAAAEgICAFEAUABgAAAB6OAAAfQAFgICAAhSQBoCAgAECAAAAD3NidGQAAAAASTE2AAAAGHN0dHMAAAAAAAAAAQAAACYAAAQAAAAAKHN0c2MAAAAAAAAAAgAAAAEAAAAGAAAAAQAAAAcAAAACAAAAAQAAAKxzdHN6AAAAAAAAAAAAAAAmAAAABwAAALkAAAGAAAAA+gAAANIAAAD6AAABUgAAAggAAADEAAAAaQAAABcAAAAHAAAABwAAAAcAAAAHAAAABwAAAAcAAAGpAAABXAAAAJoAAAJOAAABFQAAAnUAAAE3AAABQQAAAV8AAAErAAAAzgAAAC4AAAAHAAAABwAAAAcAAAAHAAAABwAAACYAAAJSAAAA3AAAABoAAAAsc3RjbwAAAAAAAAAHAAAQAAAAFQYAABmrAAAbdwAAJHwAAClKAAAr3gAAAPp1ZHRhAAAA8m1ldGEAAAAAAAAAImhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAAAMRpbHN0AAAAvC0tLS0AAAAcbWVhbgAAAABjb20uYXBwbGUuaVR1bmVzAAAAFG5hbWUAAAAAaVR1blNNUEIAAACEZGF0YQAAAAEAAAAAIDAwMDAwMDAwIDAwMDAwODQwIDAwMDAwMzIwIDAwMDAwMDAwMDAwMDhDQTAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAAAAvuZnJlZQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-const SND_CHICK = 'data:audio/mp4;base64,AAAAHGZ0eXBNNEEgAAAAAE00QSBtcDQyaXNvbQAABJZtb292AAAAbG12aGQAAAAA5jI9mOYyPZgAAH0AAAFEAAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAADKHRyYWsAAABcdGtoZAAAAAfmMj2Y5jI9mAAAAAEAAAAAAAFEAAAAAAAAAAAAAAAAAAEAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAsRtZGlhAAAAIG1kaGQAAAAA5jI9mOYyPZgAAH0AAAFEAAAAAAAAAAAiaGRscgAAAAAAAAAAc291bgAAAAAAAAAAAAAAAAAAAAACem1pbmYAAAAQc21oZAAAAAAAAAAAAAAAJGRpbmYAAAAcZHJlZgAAAAAAAAABAAAADHVybCAAAAABAAACPnN0YmwAAAB2c3RzZAAAAAAAAAABAAAAZm1wNGEAAAAAAAAAAQAAAAAAAAAAAAIAEAAAAAB9AAAAAAAAM2VzZHMAAAAAA4CAgCIAAAAEgICAFEAUABgAAACE2AAAfQAFgICAAhKIBoCAgAECAAAAD3NidGQAAAAASTE2AAAAGHN0dHMAAAAAAAAAAQAAAFEAAAQAAAAAKHN0c2MAAAAAAAAAAgAAAAEAAAAQAAAAAQAAAAYAAAABAAAAAQAAAVhzdHN6AAAAAAAAAAAAAABRAAAABAAAAJYAAACUAAAAlgAAAHwAAACDAAAAkQAAAJUAAACGAAAAmgAAAIgAAAB4AAAAcQAAAH8AAACZAAAAmQAAAJoAAAB9AAAAjwAAAHYAAACdAAAAfQAAAIUAAACRAAAAiwAAAIUAAACBAAAAfQAAAIgAAAB8AAAAiQAAAI0AAABwAAAAigAAAI8AAACNAAAAigAAAIYAAACIAAAAgAAAAIAAAACBAAAAggAAAHcAAACGAAAAhQAAAH8AAAB8AAAAhQAAAIsAAACNAAAAjQAAAIMAAAB/AAAAiAAAAH4AAACDAAAAbAAAAJIAAABwAAAAfAAAAIcAAAB/AAAAoQAAAI4AAAB5AAAAfAAAAIMAAAB/AAAAfwAAAGsAAACCAAAAdgAAAJIAAABwAAAAZgAAAIEAAACDAAAAhAAAAHgAAABjAAAAKHN0Y28AAAAAAAAABgAAEAAAABgrAAAgnwAAKM0AADETAAA44gAAAPp1ZHRhAAAA8m1ldGEAAAAAAAAAImhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAAAMRpbHN0AAAAvC0tLS0AAAAcbWVhbgAAAABjb20uYXBwbGUuaVR1bmVzAAAAFG5hbWUAAAAAaVR1blNNUEIAAACEZGF0YQAAAAEAAAAAIDAwMDAwMDAwIDAwMDAwODQwIDAwMDAwMzQwIDAwMDAwMDAwMDAwMTM4ODAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAgMDAwMDAwMDAAAAtGZnJlZQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-
+// ===== Audio System (Web Audio API synthesis) =====
 const audioEls = {};
 let soundsPreloaded = false;
-function preloadSounds() {
-  if (soundsPreloaded) return;
-  soundsPreloaded = true;
-  const map = { rooster: SND_ROOSTER, cluck: SND_CLUCK, chick: SND_CHICK };
-  Object.keys(map).forEach(name => {
-    const el = new Audio(map[name]);
-    el.preload = 'auto';
-    audioEls[name] = el;
-  });
-}
+function preloadSounds() { soundsPreloaded = true; }
 
 function playBuffer(name, rate, vol) {
-  let el = audioEls[name];
-  if (!el) return;
-  if (el.readyState < 2) {
-    const el2 = new Audio(el.src);
-    el2.preload = 'auto';
-    el2.volume = Math.min(vol || 0.5, 1);
-    el2.playbackRate = rate || 1;
-    el2.play().catch(() => {});
-    audioEls[name] = el2;
-    return;
-  }
-  el.volume = Math.min(vol || 0.5, 1);
-  el.playbackRate = rate || 1;
-  el.currentTime = 0;
-  el.play().catch(() => {});
+  // Legacy stub - all sounds now synthesized via Web Audio API
 }
+
+// ===== Background Music =====
+const BGM_MELODY = [
+  { f: 523.25, d: 0.4 }, { f: 587.33, d: 0.4 }, { f: 659.25, d: 0.4 }, { f: 523.25, d: 0.4 },
+  { f: 659.25, d: 0.4 }, { f: 783.99, d: 0.8 }, { f: 0, d: 0.3 },
+  { f: 783.99, d: 0.4 }, { f: 659.25, d: 0.4 }, { f: 587.33, d: 0.4 }, { f: 523.25, d: 0.4 },
+  { f: 440.00, d: 0.4 }, { f: 523.25, d: 0.8 }, { f: 0, d: 0.3 },
+  { f: 587.33, d: 0.4 }, { f: 659.25, d: 0.4 }, { f: 783.99, d: 0.4 }, { f: 880.00, d: 0.4 },
+  { f: 783.99, d: 0.4 }, { f: 659.25, d: 0.4 }, { f: 523.25, d: 0.8 }, { f: 0, d: 0.5 },
+];
+
+let farmAmbientTimer = null;
+let bgMusicTimer = null;
+let bgMusicGain = null;
+let bgMusicStarted = false;
 
 // ===== NuoNuo Sound =====
 function playNuoNuoSound() {
@@ -729,26 +717,112 @@ function playNuoNuoMelody() {
   });
 }
 
-// ===== Chicken Sounds =====
-function playRoosterSound() { preloadSounds(); playBuffer('rooster', 0.9 + Math.random() * 0.2, 0.6); }
-function playHenSound() {
-  preloadSounds();
-  playBuffer('cluck', 0.85 + Math.random() * 0.3, 0.55);
+// ===== Chicken Sounds (synthesized) =====
+function playRoosterSound() {
+  const c = getAC(), t = c.currentTime;
+  // Rising preparatory sawtooth: 320→560Hz
+  const o1 = c.createOscillator(), g1 = c.createGain();
+  o1.type = 'sawtooth';
+  o1.frequency.setValueAtTime(320, t);
+  o1.frequency.linearRampToValueAtTime(560, t + 0.25);
+  g1.gain.setValueAtTime(0, t);
+  g1.gain.linearRampToValueAtTime(0.18, t + 0.05);
+  g1.gain.setValueAtTime(0.18, t + 0.2);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+  o1.connect(g1); g1.connect(c.destination);
+  o1.start(t); o1.stop(t + 0.35);
+  // Main crow: 900→600Hz sawtooth + harmonic
   setTimeout(() => {
-    const c = getAC(), o = c.createOscillator(), g = c.createGain();
-    o.type = 'sine'; o.frequency.value = 130;
-    g.gain.setValueAtTime(0.2, c.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.15);
+    const t2 = c.currentTime;
+    const o2 = c.createOscillator(), g2 = c.createGain();
+    o2.type = 'sawtooth';
+    o2.frequency.setValueAtTime(900, t2);
+    o2.frequency.linearRampToValueAtTime(600, t2 + 0.5);
+    g2.gain.setValueAtTime(0, t2);
+    g2.gain.linearRampToValueAtTime(0.25, t2 + 0.06);
+    g2.gain.setValueAtTime(0.25, t2 + 0.35);
+    g2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.55);
+    o2.connect(g2); g2.connect(c.destination);
+    o2.start(t2); o2.stop(t2 + 0.55);
+    // Harmonic
+    const o2h = c.createOscillator(), g2h = c.createGain();
+    o2h.type = 'sawtooth';
+    o2h.frequency.setValueAtTime(1800, t2);
+    o2h.frequency.linearRampToValueAtTime(1200, t2 + 0.5);
+    g2h.gain.setValueAtTime(0, t2);
+    g2h.gain.linearRampToValueAtTime(0.08, t2 + 0.06);
+    g2h.gain.exponentialRampToValueAtTime(0.001, t2 + 0.55);
+    o2h.connect(g2h); g2h.connect(c.destination);
+    o2h.start(t2); o2h.stop(t2 + 0.55);
+  }, 250);
+  // Trailing: 500→380Hz
+  setTimeout(() => {
+    const t3 = c.currentTime;
+    const o3 = c.createOscillator(), g3 = c.createGain();
+    o3.type = 'sawtooth';
+    o3.frequency.setValueAtTime(500, t3);
+    o3.frequency.linearRampToValueAtTime(380, t3 + 0.3);
+    g3.gain.setValueAtTime(0, t3);
+    g3.gain.linearRampToValueAtTime(0.12, t3 + 0.04);
+    g3.gain.exponentialRampToValueAtTime(0.001, t3 + 0.35);
+    o3.connect(g3); g3.connect(c.destination);
+    o3.start(t3); o3.stop(t3 + 0.35);
+  }, 800);
+}
+
+function playHenSound() {
+  const c = getAC(), t = c.currentTime;
+  // Series of 3-5 square wave clucks
+  const cluckCount = 3 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < cluckCount; i++) {
+    const start = t + i * 0.12;
+    const freq = 800 + Math.random() * 300;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(freq, start);
+    g.gain.setValueAtTime(0, start);
+    g.gain.linearRampToValueAtTime(0.15, start + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, start + 0.08);
     o.connect(g); g.connect(c.destination);
-    o.start(); o.stop(c.currentTime + 0.15);
-    noise(0.1, 0.06);
+    o.start(start); o.stop(start + 0.08);
+    // Bandpass noise click
+    filteredNoise(0.06, 0.08, freq - 200, freq + 200, i * 0.12);
+  }
+  // Egg-laying satisfaction: 130Hz sine + noise
+  setTimeout(() => {
+    const t2 = c.currentTime;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.value = 130;
+    g.gain.setValueAtTime(0.2, t2);
+    g.gain.exponentialRampToValueAtTime(0.001, t2 + 0.15);
+    o.connect(g); g.connect(c.destination);
+    o.start(t2); o.stop(t2 + 0.15);
+    filteredNoise(0.1, 0.06, 2000, 6000, 0);
   }, 1100);
 }
-// Single chick chirp — use real chick sound (single short burst)
+
 function playChickSound() {
-  preloadSounds();
-  // Single chirp: play once at slightly varied rate
-  playBuffer('chick', 1.0 + Math.random() * 0.3, 0.55);
+  const c = getAC(), t = c.currentTime;
+  // Quick rising sine wave: 2800-3400Hz, 0.1s
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(2800, t);
+  o.frequency.linearRampToValueAtTime(3400, t + 0.1);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.2, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  o.connect(g); g.connect(c.destination);
+  o.start(t); o.stop(t + 0.1);
+  // Second harmonic for "cheepy" quality
+  const o2 = c.createOscillator(), g2 = c.createGain();
+  o2.type = 'sine';
+  o2.frequency.setValueAtTime(5600, t);
+  o2.frequency.linearRampToValueAtTime(6800, t + 0.1);
+  g2.gain.setValueAtTime(0, t);
+  g2.gain.linearRampToValueAtTime(0.06, t + 0.015);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  o2.connect(g2); g2.connect(c.destination);
+  o2.start(t); o2.stop(t + 0.1);
 }
 
 function playEggCrackSound() {
@@ -756,6 +830,102 @@ function playEggCrackSound() {
   osc(110, 0.13, 'sine', 0.22);
   noise(0.05, 0.1, 0.08);
   setTimeout(() => playChickSound(), 280);
+}
+
+function filteredNoise(dur, vol, freqLow, freqHigh, delay, type) {
+  const c = getAC(), t = c.currentTime + (delay || 0);
+  const bs = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, bs, c.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < bs; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+  const s = c.createBufferSource(), g = c.createGain();
+  s.buffer = buf;
+  // Bandpass filter
+  const f = c.createBiquadFilter();
+  f.type = 'bandpass';
+  f.frequency.value = (freqLow + freqHigh) / 2;
+  f.Q.value = 1;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(Math.min(vol || 0.1, 1), t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  s.connect(f); f.connect(g); g.connect(c.destination);
+  s.start(t); s.stop(t + dur);
+}
+
+function playChickChirps(count) {
+  const c = getAC();
+  const chirpCount = count || (2 + Math.floor(Math.random() * 3));
+  for (let i = 0; i < chirpCount; i++) {
+    setTimeout(() => playChickSound(), i * 120);
+  }
+}
+
+function startFarmAmbient() {
+  if (farmAmbientTimer) clearTimeout(farmAmbientTimer);
+  const delay = 8000 + Math.random() * 7000; // 8-15s first delay
+  farmAmbientTimer = setTimeout(() => {
+    playFarmGroupChirp();
+    scheduleNextFarmAmbient();
+  }, delay);
+}
+
+function scheduleNextFarmAmbient() {
+  if (farmAmbientTimer) clearTimeout(farmAmbientTimer);
+  const delay = 12000 + Math.random() * 13000; // 12-25s between sounds
+  farmAmbientTimer = setTimeout(() => {
+    playFarmGroupChirp();
+    scheduleNextFarmAmbient();
+  }, delay);
+}
+
+function playFarmGroupChirp() {
+  // 2-5 chicks chirping in quick succession
+  const count = 2 + Math.floor(Math.random() * 4);
+  playChickChirps(count);
+  // Sometimes add a distant hen cluck
+  if (Math.random() > 0.5) {
+    setTimeout(() => playHenSound(), 300 + Math.random() * 400);
+  }
+}
+
+function startBgMusic() {
+  if (bgMusicStarted) return;
+  bgMusicStarted = true;
+  bgMusicGain = getAC().createGain();
+  bgMusicGain.gain.value = 0.06;
+  bgMusicGain.connect(getAC().destination);
+  playBgMelody();
+  startFarmAmbient();
+}
+
+function playBgMelody() {
+  if (!bgMusicStarted) return;
+  const c = getAC(), now = c.currentTime + 0.05;
+  let time = now;
+  BGM_MELODY.forEach(n => {
+    if (n.f > 0) {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(n.f, time);
+      g.gain.setValueAtTime(0, time);
+      g.gain.linearRampToValueAtTime(0.06, time + 0.03);
+      g.gain.setValueAtTime(0.06, time + n.d * 0.7);
+      g.gain.exponentialRampToValueAtTime(0.001, time + n.d);
+      o.connect(g); g.connect(bgMusicGain);
+      o.start(time); o.stop(time + n.d);
+      // Harmonic
+      const o2 = c.createOscillator(), g2 = c.createGain();
+      o2.type = 'sine';
+      o2.frequency.setValueAtTime(n.f * 2, time);
+      g2.gain.setValueAtTime(0, time);
+      g2.gain.linearRampToValueAtTime(0.02, time + 0.03);
+      g2.gain.exponentialRampToValueAtTime(0.001, time + n.d);
+      o2.connect(g2); g2.connect(bgMusicGain);
+      o2.start(time); o2.stop(time + n.d);
+    }
+    time += n.d + 0.02;
+  });
+  // Loop: schedule next play
+  const totalDur = BGM_MELODY.reduce((sum, n) => sum + n.d + 0.02, 0);
+  bgMusicTimer = setTimeout(() => playBgMelody(), totalDur * 1000);
 }
 
 function noise(dur, vol, delay) {
@@ -1208,7 +1378,7 @@ window.addEventListener('resize', () => {
 
 let audioInited = false;
 function initAudio() {
-  if (!audioInited) { getAC(); audioInited = true; }
+  if (!audioInited) { getAC(); audioInited = true; startBgMusic(); }
 }
 document.addEventListener('click', initAudio, {once:true});
 document.addEventListener('touchstart', initAudio, {once:true});
