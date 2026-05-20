@@ -852,10 +852,6 @@ function playFarmGroupChirp() {
   // 2-5 chicks chirping in quick succession
   const count = 2 + Math.floor(Math.random() * 4);
   playChickChirps(count);
-  // Sometimes add a distant hen cluck
-  if (Math.random() > 0.5) {
-    setTimeout(() => playHenSound(), 300 + Math.random() * 400);
-  }
 }
 
 // ===== Farm ambient sounds =====
@@ -958,10 +954,8 @@ function scheduleFarmAnimals() {
   setTimeout(() => {
     if (!bgMusicStarted) return;
     const r = Math.random();
-    if (r < 0.35) {
+    if (r < 0.5) {
       playFarmAnimalMoo(); // cow/pig grunt
-    } else if (r < 0.55) {
-      playFarmDistantRooster(); // distant rooster
     }
     // otherwise just the existing group chick chirps
     scheduleFarmAnimals();
