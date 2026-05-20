@@ -853,14 +853,115 @@ function playFarmGroupChirp() {
   }
 }
 
+// ===== Farm ambient sounds =====
+let farmWindSource = null;
+
+function startFarmWind() {
+  // Continuous low wind / nature ambience
+  const c = getAC();
+  const bs = c.sampleRate * 8; // 8 second looping buffer
+  const buf = c.createBuffer(2, bs, c.sampleRate);
+  // Gentle pink-ish noise: filtered white noise
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    let lastOut = 0;
+    for (let i = 0; i < bs; i++) {
+      const white = (Math.random() * 2 - 1) * 0.3;
+      // Simple lowpass for pink-ish quality
+      lastOut = 0.7 * lastOut + 0.3 * white;
+      d[i] = lastOut;
+    }
+  }
+  farmWindSource = c.createBufferSource();
+  farmWindSource.buffer = buf;
+  farmWindSource.loop = true;
+  // Lowpass filter to make it wind-like
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 400;
+  lp.Q.value = 0.5;
+  // Gentle volume
+  const g = c.createGain();
+  g.gain.value = 0.04;
+  farmWindSource.connect(lp);
+  lp.connect(g);
+  g.connect(c.destination);
+  farmWindSource.start();
+}
+
+function playFarmAnimalMoo() {
+  // Deep cow/pig grunt: low frequency sine sweep + filtered noise
+  const c = getAC(), t = c.currentTime;
+  // Low "moo" body
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(120, t);
+  o.frequency.linearRampToValueAtTime(145, t + 0.3);
+  o.frequency.linearRampToValueAtTime(110, t + 0.8);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.1, t + 0.08);
+  g.gain.setValueAtTime(0.1, t + 0.5);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+  o.connect(g); g.connect(c.destination);
+  o.start(t); o.stop(t + 0.9);
+  // Triangle harmonic for warmth
+  const o2 = c.createOscillator(), g2 = c.createGain();
+  o2.type = 'triangle';
+  o2.frequency.setValueAtTime(240, t);
+  o2.frequency.linearRampToValueAtTime(290, t + 0.3);
+  o2.frequency.linearRampToValueAtTime(220, t + 0.8);
+  g2.gain.setValueAtTime(0, t);
+  g2.gain.linearRampToValueAtTime(0.03, t + 0.08);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+  o2.connect(g2); g2.connect(c.destination);
+  o2.start(t); o2.stop(t + 0.9);
+  // Vocal noise component
+  filteredNoise(0.8, 0.05, 100, 500, 0);
+}
+
+function playFarmDistantRooster() {
+  // Distant rooster: use the real recording at low volume
+  const c = getAC(), s = c.createBufferSource();
+  if (audioBuffers.rooster) {
+    s.buffer = audioBuffers.rooster;
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 2000;
+    lp.Q.value = 0.5;
+    const g = c.createGain();
+    g.gain.value = 0.15; // distant / quiet
+    s.connect(lp); lp.connect(g); g.connect(c.destination);
+    s.start();
+  }
+}
+
 function startBgMusic() {
   if (bgMusicStarted) return;
   bgMusicStarted = true;
   bgMusicGain = getAC().createGain();
-  bgMusicGain.gain.value = 0.06;
+  bgMusicGain.gain.value = 0.12;
   bgMusicGain.connect(getAC().destination);
   playBgMelody();
   startFarmAmbient();
+  startFarmWind();
+  // Schedule farm animal sounds periodically
+  scheduleFarmAnimals();
+}
+
+function scheduleFarmAnimals() {
+  // Play a random farm sound every 15-30 seconds
+  const delay = 15000 + Math.random() * 15000;
+  setTimeout(() => {
+    if (!bgMusicStarted) return;
+    const r = Math.random();
+    if (r < 0.35) {
+      playFarmAnimalMoo(); // cow/pig grunt
+    } else if (r < 0.55) {
+      playFarmDistantRooster(); // distant rooster
+    }
+    // otherwise just the existing group chick chirps
+    scheduleFarmAnimals();
+  }, delay);
 }
 
 function playBgMelody() {
@@ -873,8 +974,8 @@ function playBgMelody() {
       o.type = 'sine';
       o.frequency.setValueAtTime(n.f, time);
       g.gain.setValueAtTime(0, time);
-      g.gain.linearRampToValueAtTime(0.06, time + 0.03);
-      g.gain.setValueAtTime(0.06, time + n.d * 0.7);
+      g.gain.linearRampToValueAtTime(0.12, time + 0.03);
+      g.gain.setValueAtTime(0.12, time + n.d * 0.7);
       g.gain.exponentialRampToValueAtTime(0.001, time + n.d);
       o.connect(g); g.connect(bgMusicGain);
       o.start(time); o.stop(time + n.d);
@@ -883,7 +984,7 @@ function playBgMelody() {
       o2.type = 'sine';
       o2.frequency.setValueAtTime(n.f * 2, time);
       g2.gain.setValueAtTime(0, time);
-      g2.gain.linearRampToValueAtTime(0.02, time + 0.03);
+      g2.gain.linearRampToValueAtTime(0.04, time + 0.03);
       g2.gain.exponentialRampToValueAtTime(0.001, time + n.d);
       o2.connect(g2); g2.connect(bgMusicGain);
       o2.start(time); o2.stop(time + n.d);
