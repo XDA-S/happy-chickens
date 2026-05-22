@@ -243,6 +243,14 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
   .fence-post::before{border-left-width:7px;border-right-width:7px;border-bottom-width:11px;top:-10px}
   .fence-post::after{border-left-width:4px;border-right-width:4px;border-bottom-width:8px;top:-10px}
 }
+
+/* ===== Seesaw ===== */
+#seesaw-container{position:absolute;z-index:20;pointer-events:none}
+#seesaw-plank{transform-origin:center center;transition:transform 0.4s ease-in-out}
+.seesaw-end{cursor:pointer;pointer-events:all}
+.seesaw-end-hint{animation:seesawPulse 1.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes seesawPulse{0%,100%{opacity:0.3;transform:scale(0.85)}50%{opacity:0.75;transform:scale(1.2)}}
+.seesaw-selected{filter:drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 4px #FF9800)}
 </style>
 </head>
 <body>
@@ -554,13 +562,40 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
 
 <script>
 // ===== CONFIG =====
-const PEN = { leftPct: 0.02, rightPct: 0.98, topPct: 0.43, bottomPct: 0.98 };
+const PEN = { leftPct: 0.01, rightPct: 0.99, topPct: 0.40, bottomPct: 0.99 };
 const MAX_CHICKS = 15;
 // Gate: positioned at center-bottom of fence, width ~60px
 const GATE_WIDTH = 60;
 let audioCtx = null;
 let gateCenterX = 0; // updated in init
 let gateY = 0;       // bottom fence y position
+
+// ===== Seesaw State =====
+let seesawEl = null;           // container div
+let seesawPlankEl = null;      // the plank SVG group
+let seesawAngle = 0;           // current tilt angle in degrees
+let seesawTargetAngle = 0;     // target tilt angle
+let seesawOscDir = 1;          // oscillation direction when balanced
+let seesawSelectedEnd = null;  // 'left' | 'right' | null
+// chickens on seesaw: {left: [chickenData...], right: [chickenData...]}
+const seesawChickens = { left: [], right: [] };
+const SEESAW_MAX_PER_SIDE = 3;
+const SEESAW_TILT_MAX = 22;    // degrees max tilt
+
+function getSeesawWeight(side) {
+  let w = 0;
+  seesawChickens[side].forEach(d => {
+    if (d.type === 'hen') w += 3;
+    else if (d.type === 'rooster') w += 99; // special: rooster triggers eject
+    else w += 1; // chick
+  });
+  return w;
+}
+
+function hasRoosterOnSeesaw() {
+  return seesawChickens.left.some(d => d.type === 'rooster') ||
+         seesawChickens.right.some(d => d.type === 'rooster');
+}
 
 function getAC() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -906,6 +941,23 @@ function startFarmWind() {
   lp.connect(g);
   g.connect(c.destination);
   farmWindSource.start();
+}
+
+function playRoosterEjectSound() {
+  // Boing + chick scatter sounds
+  const c = getAC(), t = c.currentTime;
+  // Boing: pitch-sweep up
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(200, t);
+  o.frequency.exponentialRampToValueAtTime(900, t + 0.25);
+  o.frequency.exponentialRampToValueAtTime(400, t + 0.5);
+  g.gain.setValueAtTime(0.18, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+  o.connect(g); g.connect(c.destination);
+  o.start(t); o.stop(t + 0.5);
+  // Multiple chick sounds
+  for (let i = 0; i < 4; i++) setTimeout(() => playChickSound(), i * 80 + 100);
 }
 
 function playFarmAnimalMoo() {
@@ -1306,6 +1358,13 @@ function updateChicken(d, dt) {
   }
   if (d.state === 'gone') return;
 
+  // ===== ON SEESAW STATE =====
+  if (d.state === 'on_seesaw') {
+    // Position is managed by repositionSeesawChickens(), just update zIndex
+    d.el.style.zIndex = 25;
+    return;
+  }
+
   // ===== ACTIVE STATE =====
   if (d.state === 'active') {
     d.activeTimer -= dt;
@@ -1385,6 +1444,27 @@ function startFleeing(d) {
 function handleChickenClick(el) {
   const id = el.id || el.dataset.id;
   const type = el.dataset.type;
+  const d = chickenData.find(c => c.el === el);
+
+  // If a seesaw end is selected, place this chicken on seesaw
+  if (seesawSelectedEnd && d && d.state !== 'fleeing' && d.state !== 'gone') {
+    placeChickenOnSeesaw(d, seesawSelectedEnd);
+    return;
+  }
+
+  // If chicken is on seesaw, clicking it removes it from seesaw
+  if (d && d.state === 'on_seesaw') {
+    ['left', 'right'].forEach(s => {
+      const idx = seesawChickens[s].indexOf(d);
+      if (idx >= 0) seesawChickens[s].splice(idx, 1);
+    });
+    d.state = 'idle';
+    d.stateTimer = 800 + Math.random() * 1200;
+    d.el.classList.remove('running');
+    d.el.classList.add('idle');
+    updateSeesawTilt();
+    return;
+  }
 
   // Chick: play sound then flee
   if (type === 'chick') {
@@ -1416,7 +1496,6 @@ function handleChickenClick(el) {
   el.classList.add('active','clicked');
   setTimeout(() => el.classList.remove('clicked'), 300);
 
-  const d = chickenData.find(c => c.el === el);
   if (d) { d.state='active'; d.activeTimer = type==='hen'?1300:900; }
 
   const r = el.getBoundingClientRect();
@@ -1440,10 +1519,318 @@ function handleChickenClick(el) {
   }, dur);
 }
 
+function createSeesaw() {
+  if (seesawEl) seesawEl.remove();
+  const game = document.getElementById('game');
+  const b = getPenBounds();
+  const gw = game.offsetWidth;
+  const gh = game.offsetHeight;
+
+  // Position seesaw in middle of pen
+  const cx = (b.left + b.right) / 2;
+  const cy = b.top + (b.bottom - b.top) * 0.45;
+  const plankW = Math.min((b.right - b.left) * 0.42, 200);
+  const plankH = 14;
+  const legH = 36;
+  const totalW = plankW + 60;
+  const totalH = legH + plankH + 20;
+
+  seesawEl = document.createElement('div');
+  seesawEl.id = 'seesaw-container';
+  seesawEl.style.left = (cx - totalW/2) + 'px';
+  seesawEl.style.top = (cy - totalH/2) + 'px';
+  seesawEl.style.width = totalW + 'px';
+  seesawEl.style.height = totalH + 'px';
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', totalW);
+  svg.setAttribute('height', totalH);
+  svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+  svg.style.overflow = 'visible';
+
+  // Fulcrum (triangle support)
+  const fulcX = totalW / 2;
+  const fulcY = totalH - 10;
+  const tri = document.createElementNS(svgNS, 'polygon');
+  tri.setAttribute('points', `${fulcX},${fulcY - legH} ${fulcX - 16},${fulcY} ${fulcX + 16},${fulcY}`);
+  tri.setAttribute('fill', '#8D6E63');
+  tri.setAttribute('stroke', '#6D4C41');
+  tri.setAttribute('stroke-width', '2');
+  svg.appendChild(tri);
+
+  // Base bar
+  const base = document.createElementNS(svgNS, 'rect');
+  base.setAttribute('x', fulcX - 28);
+  base.setAttribute('y', fulcY - 6);
+  base.setAttribute('width', '56');
+  base.setAttribute('height', '10');
+  base.setAttribute('rx', '4');
+  base.setAttribute('fill', '#6D4C41');
+  svg.appendChild(base);
+
+  // Plank group (rotates around fulcrum)
+  const plankGroup = document.createElementNS(svgNS, 'g');
+  plankGroup.id = 'seesaw-plank';
+  plankGroup.style.transformOrigin = `${fulcX}px ${fulcY - legH}px`;
+  plankGroup.style.transition = 'transform 0.5s ease-in-out';
+
+  const plankY = fulcY - legH - plankH / 2;
+  const plankX = fulcX - plankW / 2;
+
+  // Plank body
+  const plank = document.createElementNS(svgNS, 'rect');
+  plank.setAttribute('x', plankX);
+  plank.setAttribute('y', plankY);
+  plank.setAttribute('width', plankW);
+  plank.setAttribute('height', plankH);
+  plank.setAttribute('rx', '6');
+  plank.setAttribute('fill', '#A0522D');
+  plank.setAttribute('stroke', '#7A3B1E');
+  plank.setAttribute('stroke-width', '2');
+  plankGroup.appendChild(plank);
+
+  // Wood grain lines
+  for (let i = 1; i < 5; i++) {
+    const grain = document.createElementNS(svgNS, 'line');
+    grain.setAttribute('x1', plankX + plankW * i / 5);
+    grain.setAttribute('y1', plankY + 2);
+    grain.setAttribute('x2', plankX + plankW * i / 5);
+    grain.setAttribute('y2', plankY + plankH - 2);
+    grain.setAttribute('stroke', '#7A3B1E');
+    grain.setAttribute('stroke-width', '1');
+    grain.setAttribute('opacity', '0.4');
+    plankGroup.appendChild(grain);
+  }
+
+  // Left end hint circle (pulsing)
+  const leftHint = document.createElementNS(svgNS, 'circle');
+  leftHint.setAttribute('cx', plankX + 18);
+  leftHint.setAttribute('cy', plankY + plankH / 2);
+  leftHint.setAttribute('r', '14');
+  leftHint.setAttribute('fill', '#FFD700');
+  leftHint.setAttribute('opacity', '0.45');
+  leftHint.classList.add('seesaw-end-hint');
+  plankGroup.appendChild(leftHint);
+
+  // Right end hint circle
+  const rightHint = document.createElementNS(svgNS, 'circle');
+  rightHint.setAttribute('cx', plankX + plankW - 18);
+  rightHint.setAttribute('cy', plankY + plankH / 2);
+  rightHint.setAttribute('r', '14');
+  rightHint.setAttribute('fill', '#FFD700');
+  rightHint.setAttribute('opacity', '0.45');
+  rightHint.classList.add('seesaw-end-hint');
+  plankGroup.appendChild(rightHint);
+
+  // Left clickable end zone
+  const leftEnd = document.createElementNS(svgNS, 'rect');
+  leftEnd.setAttribute('x', plankX);
+  leftEnd.setAttribute('y', plankY - 10);
+  leftEnd.setAttribute('width', '50');
+  leftEnd.setAttribute('height', plankH + 20);
+  leftEnd.setAttribute('fill', 'transparent');
+  leftEnd.classList.add('seesaw-end');
+  leftEnd.dataset = {}; // not needed since we'll use a closure
+  plankGroup.appendChild(leftEnd);
+
+  // Right clickable end zone
+  const rightEnd = document.createElementNS(svgNS, 'rect');
+  rightEnd.setAttribute('x', plankX + plankW - 50);
+  rightEnd.setAttribute('y', plankY - 10);
+  rightEnd.setAttribute('width', '50');
+  rightEnd.setAttribute('height', plankH + 20);
+  rightEnd.setAttribute('fill', 'transparent');
+  rightEnd.classList.add('seesaw-end');
+  plankGroup.appendChild(rightEnd);
+
+  svg.appendChild(plankGroup);
+  seesawEl.appendChild(svg);
+  game.appendChild(seesawEl);
+  seesawPlankEl = plankGroup;
+
+  // Store geometry for chicken placement
+  seesawEl._plankW = plankW;
+  seesawEl._plankX = plankX;
+  seesawEl._plankY = plankY;
+  seesawEl._plankH = plankH;
+  seesawEl._fulcX = fulcX;
+  seesawEl._fulcY = fulcY - legH;
+  seesawEl._totalW = totalW;
+  seesawEl._totalH = totalH;
+  seesawEl._cx = cx;
+  seesawEl._cy = cy;
+
+  // Event listeners for seesaw ends
+  function handleSeesawEnd(endSide, e) {
+    e.stopPropagation();
+    if (seesawSelectedEnd === endSide) {
+      // Deselect
+      seesawSelectedEnd = null;
+      leftEnd.classList.remove('seesaw-selected');
+      rightEnd.classList.remove('seesaw-selected');
+      plankGroup.classList.remove('seesaw-selected');
+    } else {
+      seesawSelectedEnd = endSide;
+      if (endSide === 'left') {
+        leftEnd.classList.add('seesaw-selected');
+        rightEnd.classList.remove('seesaw-selected');
+        leftHint.setAttribute('fill', '#FF9800');
+        rightHint.setAttribute('fill', '#FFD700');
+      } else {
+        rightEnd.classList.add('seesaw-selected');
+        leftEnd.classList.remove('seesaw-selected');
+        rightHint.setAttribute('fill', '#FF9800');
+        leftHint.setAttribute('fill', '#FFD700');
+      }
+      // Show particle feedback
+      const game = document.getElementById('game');
+      const gr = game.getBoundingClientRect();
+      const sr = seesawEl.getBoundingClientRect();
+      const ex = sr.left - gr.left + (endSide === 'left' ? 30 : sr.width - 30);
+      const ey = sr.top - gr.top + sr.height / 2;
+      createSparkles(ex, ey, 5, ['#FFD700','#FF9800','#FFF9C4']);
+    }
+  }
+
+  leftEnd.addEventListener('click', e => handleSeesawEnd('left', e));
+  leftEnd.addEventListener('touchstart', e => { e.preventDefault(); handleSeesawEnd('left', e); }, {passive:false});
+  rightEnd.addEventListener('click', e => handleSeesawEnd('right', e));
+  rightEnd.addEventListener('touchstart', e => { e.preventDefault(); handleSeesawEnd('right', e); }, {passive:false});
+}
+
+let seesawOscTimer = null;
+
+function updateSeesawTilt() {
+  if (!seesawPlankEl) return;
+  if (seesawOscTimer) { clearInterval(seesawOscTimer); seesawOscTimer = null; }
+
+  const lw = getSeesawWeight('left');
+  const rw = getSeesawWeight('right');
+  const total = lw + rw;
+
+  if (total === 0) {
+    seesawTargetAngle = 0;
+  } else if (lw === rw) {
+    // Balanced: start gentle oscillation loop
+    seesawOscDir = 1;
+    seesawTargetAngle = 6;
+    seesawOscTimer = setInterval(() => {
+      const lw2 = getSeesawWeight('left'), rw2 = getSeesawWeight('right');
+      if (lw2 !== rw2 || lw2 + rw2 === 0) { clearInterval(seesawOscTimer); seesawOscTimer = null; updateSeesawTilt(); return; }
+      seesawOscDir *= -1;
+      seesawTargetAngle = seesawOscDir * 6;
+      seesawPlankEl.style.transform = `rotate(${seesawTargetAngle}deg)`;
+      repositionSeesawChickens();
+    }, 800);
+  } else if (lw > rw) {
+    const ratio = Math.min((lw - rw) / Math.max(total, 1), 1);
+    seesawTargetAngle = -(ratio * SEESAW_TILT_MAX);
+  } else {
+    const ratio = Math.min((rw - lw) / Math.max(total, 1), 1);
+    seesawTargetAngle = ratio * SEESAW_TILT_MAX;
+  }
+  seesawPlankEl.style.transform = `rotate(${seesawTargetAngle}deg)`;
+  repositionSeesawChickens();
+}
+
+function repositionSeesawChickens() {
+  if (!seesawEl) return;
+  const plankW = seesawEl._plankW;
+  const plankX = seesawEl._plankX;
+  const plankY = seesawEl._plankY;
+  const plankH = seesawEl._plankH;
+  const cx = seesawEl._cx;
+  const cy = seesawEl._cy;
+  const fulcX = seesawEl._fulcX;
+  const fulcY = seesawEl._fulcY;
+  const angle = seesawTargetAngle * Math.PI / 180;
+
+  // Place chickens on left end
+  const ssLeft = parseFloat(seesawEl.style.left);
+  const ssTop = parseFloat(seesawEl.style.top);
+  seesawChickens.left.forEach((d, i) => {
+    const lArmLen = plankW / 2 - 20 - i * 18;
+    d.x = ssLeft + fulcX - lArmLen * Math.cos(angle) - d.sz.w / 2;
+    d.y = ssTop + fulcY - lArmLen * Math.sin(angle) - d.sz.h;
+    d.el.style.left = d.x + 'px';
+    d.el.style.top = d.y + 'px';
+    d.el.style.zIndex = 25;
+  });
+
+  seesawChickens.right.forEach((d, i) => {
+    const rArmLen = plankW / 2 - 20 - i * 18;
+    d.x = ssLeft + fulcX + rArmLen * Math.cos(angle) - d.sz.w / 2;
+    d.y = ssTop + fulcY + rArmLen * Math.sin(angle) - d.sz.h;
+    d.el.style.left = d.x + 'px';
+    d.el.style.top = d.y + 'px';
+    d.el.style.zIndex = 25;
+  });
+}
+
+function placeChickenOnSeesaw(d, side) {
+  // Remove from current seesaw side if already on seesaw
+  ['left', 'right'].forEach(s => {
+    const idx = seesawChickens[s].indexOf(d);
+    if (idx >= 0) seesawChickens[s].splice(idx, 1);
+  });
+
+  // Check capacity
+  if (seesawChickens[side].length >= SEESAW_MAX_PER_SIDE) {
+    createParticle(d.x, d.y - 20, '😅');
+    return;
+  }
+
+  // Rooster special: eject all chickens from opposite side
+  if (d.type === 'rooster') {
+    const oppSide = side === 'left' ? 'right' : 'left';
+    const ejected = [...seesawChickens[oppSide]];
+    seesawChickens[oppSide] = [];
+    seesawChickens[side] = [d];
+    d.state = 'on_seesaw';
+    updateSeesawTilt();
+
+    // Animate ejected chickens flying off
+    ejected.forEach((ed, i) => {
+      setTimeout(() => {
+        ed.state = 'fleeing';
+        ed.fleePhase = 0;
+        const game = document.getElementById('game');
+        ed.targetX = (oppSide === 'left') ? -100 : game.offsetWidth + 100;
+        ed.targetY = getPenBounds().bottom - 50;
+        ed.speed = 1.2 + Math.random() * 0.4;
+        ed.el.classList.add('running');
+        ed.el.style.zIndex = 200;
+        createParticle(ed.x + ed.sz.w/2, ed.y, '💨');
+      }, i * 150);
+    });
+    playRoosterEjectSound();
+    createSparkles(d.x + d.sz.w/2, d.y, 12, ['#FF4444','#FF8800','#FFDD00']);
+    seesawSelectedEnd = null;
+    return;
+  }
+
+  seesawChickens[side].push(d);
+  d.state = 'on_seesaw';
+  updateSeesawTilt();
+  seesawSelectedEnd = null;
+
+  // Clear selection highlight
+  if (seesawPlankEl) {
+    seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
+  }
+
+  // Feedback
+  const game = document.getElementById('game');
+  const gr = game.getBoundingClientRect();
+  createSparkles(d.x + d.sz.w/2, d.y + d.sz.h/2, 6, ['#A5D6A7','#81C784','#FFD700']);
+}
+
 // ===== Init =====
 function init() {
   generateFencePosts();
   initChickens();
+  createSeesaw();
   requestAnimationFrame(gameLoop);
 
   const nb = document.getElementById('nuonuo-banner');
