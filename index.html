@@ -776,8 +776,17 @@ let bgMusicStarted = false;
 function playNuoNuoSound() {
   preloadSounds();
   if ('speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance('诺诺生日快乐');
-    u.lang = 'zh-CN'; u.rate = 0.8; u.pitch = 1.5; u.volume = 1.0;
+    const u = new SpeechSynthesisUtterance('诺诺创意作品');
+    u.lang = 'zh-CN'; u.rate = 0.72; u.pitch = 1.15; u.volume = 1.0;
+    // Try to use a gentle female voice
+    const voices = speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const femaleVoice = voices.find(v =>
+        v.lang.startsWith('zh') &&
+        (v.name.includes('Female') || v.name.includes('婷婷') || v.name.toLowerCase().includes('xiaoxiao') || v.name.includes('慧'))
+      );
+      if (femaleVoice) u.voice = femaleVoice;
+    }
     speechSynthesis.speak(u);
   }
   playNuoNuoMelody();
@@ -1385,9 +1394,8 @@ function updateChicken(d, dt) {
 
   // ===== ON SEESAW STATE =====
   if (d.state === 'on_seesaw') {
-    // Position is managed by repositionSeesawChickens()
-    // Sit on top of plank (z=21) but pointer-events:none so clicks pass through to seesaw ends
-    d.el.style.zIndex = 29; // Above seesaw plank, below hints
+    // Position updated every frame by repositionSeesawChickens() in gameLoop
+    d.el.style.zIndex = 31;
     d.el.style.pointerEvents = 'none';
     return;
   }
@@ -1472,6 +1480,7 @@ function gameLoop(time) {
   const dt = Math.min(time - lastTime, 50);
   lastTime = time;
   chickenData.forEach(d => updateChicken(d, dt));
+  repositionSeesawChickens(); // smooth per-frame tracking during oscillation
   requestAnimationFrame(gameLoop);
 }
 
@@ -1576,7 +1585,7 @@ function createSeesaw() {
   // Position seesaw in middle of pen
   const cx = (b.left + b.right) / 2;
   const cy = b.top + (b.bottom - b.top) * 0.45;
-  const plankW = Math.min((b.right - b.left) * 0.42, 200);
+  const plankW = Math.min((b.right - b.left) * 0.55, 280);
   const plankH = 14;
   const legH = 36;
   const totalW = plankW + 60;
@@ -1674,18 +1683,18 @@ function createSeesaw() {
   const leftEnd = document.createElementNS(svgNS, 'rect');
   leftEnd.setAttribute('x', plankX);
   leftEnd.setAttribute('y', plankY - 10);
-  leftEnd.setAttribute('width', '50');
+  leftEnd.setAttribute('width', '70');
   leftEnd.setAttribute('height', plankH + 20);
   leftEnd.setAttribute('fill', 'transparent');
   leftEnd.classList.add('seesaw-end');
-  leftEnd.dataset = {}; // not needed since we'll use a closure
+  leftEnd.dataset = {};
   plankGroup.appendChild(leftEnd);
 
   // Right clickable end zone
   const rightEnd = document.createElementNS(svgNS, 'rect');
-  rightEnd.setAttribute('x', plankX + plankW - 50);
+  rightEnd.setAttribute('x', plankX + plankW - 70);
   rightEnd.setAttribute('y', plankY - 10);
-  rightEnd.setAttribute('width', '50');
+  rightEnd.setAttribute('width', '70');
   rightEnd.setAttribute('height', plankH + 20);
   rightEnd.setAttribute('fill', 'transparent');
   rightEnd.classList.add('seesaw-end');
@@ -1750,6 +1759,13 @@ function createSeesaw() {
       arrow.classList.remove('show');
       label.classList.remove('show');
     } else {
+      // Check if this end is full (can't add more)
+      if (seesawChickens[endSide].length >= SEESAW_MAX_PER_SIDE) {
+        const ssLeft = parseFloat(seesawEl.style.left);
+        const ssTop = parseFloat(seesawEl.style.top);
+        createParticle(ssLeft + fulcX + (endSide === 'left' ? -30 : 30), ssTop + fulcY - 20, '😅');
+        return;
+      }
       seesawSelectedEnd = endSide;
       if (endSide === 'left') {
         leftEnd.classList.add('seesaw-selected');
@@ -1832,7 +1848,7 @@ function updateSeesawTilt() {
   if (total === 0) {
     seesawTargetAngle = 0;
   } else if (lw === rw) {
-    // Balanced: start gentle oscillation loop
+    // Balanced: gentle oscillation loop (positions updated per-frame in gameLoop)
     seesawOscDir = 1;
     seesawTargetAngle = 6;
     seesawOscTimer = setInterval(() => {
@@ -1841,7 +1857,6 @@ function updateSeesawTilt() {
       seesawOscDir *= -1;
       seesawTargetAngle = seesawOscDir * 6;
       seesawPlankEl.style.transform = `rotate(${seesawTargetAngle}deg)`;
-      repositionSeesawChickens();
     }, 800);
   } else if (lw > rw) {
     const ratio = Math.min((lw - rw) / Math.max(total, 1), 1);
@@ -1851,11 +1866,11 @@ function updateSeesawTilt() {
     seesawTargetAngle = ratio * SEESAW_TILT_MAX;
   }
   seesawPlankEl.style.transform = `rotate(${seesawTargetAngle}deg)`;
-  repositionSeesawChickens();
 }
 
 function repositionSeesawChickens() {
   if (!seesawEl) return;
+  if (seesawChickens.left.length === 0 && seesawChickens.right.length === 0) return;
   const plankW = seesawEl._plankW;
   const plankX = seesawEl._plankX;
   const plankY = seesawEl._plankY;
@@ -1875,7 +1890,7 @@ function repositionSeesawChickens() {
     d.y = ssTop + fulcY - lArmLen * Math.sin(angle) - d.sz.h;
     d.el.style.left = d.x + 'px';
     d.el.style.top = d.y + 'px';
-    d.el.style.zIndex = 29;
+    d.el.style.zIndex = 31;
     d.el.style.pointerEvents = 'none';
   });
 
@@ -1885,7 +1900,7 @@ function repositionSeesawChickens() {
     d.y = ssTop + fulcY + rArmLen * Math.sin(angle) - d.sz.h;
     d.el.style.left = d.x + 'px';
     d.el.style.top = d.y + 'px';
-    d.el.style.zIndex = 29;
+    d.el.style.zIndex = 31;
     d.el.style.pointerEvents = 'none';
   });
 }
@@ -1903,16 +1918,14 @@ function placeChickenOnSeesaw(d, side) {
     return;
   }
 
-  // Hide hint text
-  if (seesawEl && seesawEl._hintArrow) { seesawEl._hintArrow.classList.remove('show'); }
-  if (seesawEl && seesawEl._hintLabel) { seesawEl._hintLabel.classList.remove('show'); }
-
-  // Rooster special: eject all chickens from opposite side
+  // Rooster special: eject chicks (not hens) from opposite side
   if (d.type === 'rooster') {
     const oppSide = side === 'left' ? 'right' : 'left';
-    const ejected = [...seesawChickens[oppSide]];
-    seesawChickens[oppSide] = [];
-    seesawChickens[side] = [d];
+    // Only eject chicks from opposite side; hens stay put
+    const ejected = seesawChickens[oppSide].filter(ed => ed.type === 'chick');
+    seesawChickens[oppSide] = seesawChickens[oppSide].filter(ed => ed.type !== 'chick');
+    // Add rooster to current side without replacing existing chickens
+    seesawChickens[side].push(d);
     d.state = 'on_seesaw';
     updateSeesawTilt();
 
@@ -1924,14 +1937,15 @@ function placeChickenOnSeesaw(d, side) {
         const ssTop = parseFloat(seesawEl.style.top);
         // Start position: where chicken is on the seesaw
         const startX = ed.x, startY = ed.y;
-        // Target: fly off screen in opposite direction with upward arc
+        // Target: land inside the pen with a high cartoonish arc
+        const b = getPenBounds();
         const dirX = oppSide === 'left' ? -1 : 1;
-        const endX = oppSide === 'left' ? -120 : gameEl.offsetWidth + 120;
-        const endY = getPenBounds().bottom - 60;
-        // Parabolic: random upward initial velocity
-        const vy0 = -(4 + Math.random() * 5); // upward
-        const g = 0.25; // gravity per frame
-        const totalFrames = 35 + Math.floor(Math.random() * 15);
+        const endX = oppSide === 'left' ? b.left + 60 : b.right - 120;
+        const endY = b.bottom - 40 + Math.random() * 20;
+        // Parabolic: big upward launch for cartoon bounce effect
+        const vy0 = -(16 + Math.random() * 10); // high upward velocity
+        const g = 0.22; // slightly lower gravity for long hang time
+        const totalFrames = 55 + Math.floor(Math.random() * 25);
         const vx = (endX - startX) / totalFrames;
         let frame = 0, y = startY, vy = vy0;
         ed.el.style.zIndex = 200;
@@ -1943,31 +1957,34 @@ function placeChickenOnSeesaw(d, side) {
           y += vy;
           vy += g;
           const x = startX + vx * frame;
-          // Rotation based on velocity direction
-          const rot = (vy * 3);
+          // Exaggerated rotation for cartoon tumbling effect
+          const rot = (vy * 5);
           ed.el.style.left = x + 'px';
           ed.el.style.top = y + 'px';
-          ed.el.style.transform = `rotate(${Math.max(-60, Math.min(60, rot))}deg)`;
+          ed.el.style.transform = `rotate(${Math.max(-120, Math.min(120, rot))}deg) scaleX(${dirX > 0 ? 1 : -1})`;
           if (frame >= totalFrames) {
             clearInterval(arcInterval);
-            ed.el.style.opacity = '0';
-            ed.el.style.transition = 'opacity 0.3s';
-            setTimeout(() => {
-              const idx = chickenData.indexOf(ed);
-              if (idx >= 0) chickenData.splice(idx, 1);
-              ed.el.remove();
-            }, 350);
-            ed.state = 'gone';
+            // Land in pen with a bounce effect
+            ed.el.style.transform = 'scaleX(' + (dirX > 0 ? 1 : -1) + ')';
+            ed.el.style.zIndex = Math.round(endY);
+            ed.state = 'idle';
+            ed.stateTimer = 1200 + Math.random() * 2000;
+            ed.el.classList.remove('running', 'active');
+            ed.el.classList.add('idle');
+            ed.el.style.pointerEvents = 'auto';
+            createSparkles(endX + ed.sz.w/2, endY - 10, 6, ['#FFD700','#FFF9C4','#A5D6A7']);
           }
         }, 16);
       }, i * 180);
     });
     playRoosterEjectSound();
     createSparkles(d.x + d.sz.w/2, d.y, 12, ['#FF4444','#FF8800','#FFDD00']);
-    seesawSelectedEnd = null;
-    // Clear selection visuals
-    if (seesawPlankEl) {
-      seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
+    // Keep selection active after rooster placement for continuous clicks
+    if (seesawChickens[side].length >= SEESAW_MAX_PER_SIDE) {
+      seesawSelectedEnd = null;
+      if (seesawPlankEl) {
+        seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
+      }
     }
     return;
   }
@@ -1975,11 +1992,14 @@ function placeChickenOnSeesaw(d, side) {
   seesawChickens[side].push(d);
   d.state = 'on_seesaw';
   updateSeesawTilt();
-  seesawSelectedEnd = null;
-
-  // Clear selection highlight
-  if (seesawPlankEl) {
-    seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
+  // Keep selection active for continuous clicks; deselect only when side is full
+  if (seesawChickens[side].length >= SEESAW_MAX_PER_SIDE) {
+    seesawSelectedEnd = null;
+    if (seesawEl && seesawEl._hintArrow) { seesawEl._hintArrow.classList.remove('show'); }
+    if (seesawEl && seesawEl._hintLabel) { seesawEl._hintLabel.classList.remove('show'); }
+    if (seesawPlankEl) {
+      seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
+    }
   }
 
   // Feedback
