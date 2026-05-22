@@ -1409,7 +1409,6 @@ function updateChicken(d, dt) {
   if (d.state === 'on_seesaw') {
     // Position updated every frame by repositionSeesawChickens() in gameLoop
     d.el.style.zIndex = 31;
-    d.el.style.pointerEvents = 'none';
     return;
   }
 
@@ -1492,6 +1491,16 @@ function gameLoop(time) {
   if (lastTime === 0) lastTime = time;
   const dt = Math.min(time - lastTime, 50);
   lastTime = time;
+
+  // Smooth sinusoidal seesaw oscillation when balanced
+  if (seesawOscActive && seesawPlankEl) {
+    const elapsed = time - seesawOscStart;
+    const period = 2200; // 2.2s per full cycle — gentle and natural
+    const angle = Math.sin(elapsed / period * Math.PI * 2) * 6;
+    seesawPlankEl.style.transform = `rotate(${angle}deg)`;
+    seesawTargetAngle = angle;
+  }
+
   chickenData.forEach(d => updateChicken(d, dt));
   repositionSeesawChickens(); // smooth per-frame tracking during oscillation
   requestAnimationFrame(gameLoop);
@@ -1850,10 +1859,15 @@ function createSeesaw() {
 }
 
 let seesawOscTimer = null;
+let seesawOscActive = false;
+let seesawOscStart = 0;
 
 function updateSeesawTilt() {
   if (!seesawPlankEl) return;
   if (seesawOscTimer) { clearInterval(seesawOscTimer); seesawOscTimer = null; }
+  seesawOscActive = false;
+  // Re-enable CSS transition for smooth settling to target angle
+  seesawPlankEl.style.transition = 'transform 0.5s ease-in-out';
 
   const lw = getSeesawWeight('left');
   const rw = getSeesawWeight('right');
@@ -1862,16 +1876,13 @@ function updateSeesawTilt() {
   if (total === 0) {
     seesawTargetAngle = 0;
   } else if (lw === rw) {
-    // Balanced: gentle oscillation loop (positions updated per-frame in gameLoop)
-    seesawOscDir = 1;
-    seesawTargetAngle = 6;
-    seesawOscTimer = setInterval(() => {
-      const lw2 = getSeesawWeight('left'), rw2 = getSeesawWeight('right');
-      if (lw2 !== rw2 || lw2 + rw2 === 0) { clearInterval(seesawOscTimer); seesawOscTimer = null; updateSeesawTilt(); return; }
-      seesawOscDir *= -1;
-      seesawTargetAngle = seesawOscDir * 6;
-      seesawPlankEl.style.transform = `rotate(${seesawTargetAngle}deg)`;
-    }, 800);
+    // Balanced: start smooth sine oscillation
+    seesawOscActive = true;
+    seesawOscStart = performance.now();
+    // Disable CSS transition so rAF drives the animation directly
+    seesawPlankEl.style.transition = 'transform 0s';
+    seesawTargetAngle = 0;
+    return;
   } else if (lw > rw) {
     const ratio = Math.min((lw - rw) / Math.max(total, 1), 1);
     seesawTargetAngle = -(ratio * SEESAW_TILT_MAX);
@@ -1905,7 +1916,6 @@ function repositionSeesawChickens() {
     d.el.style.left = d.x + 'px';
     d.el.style.top = d.y + 'px';
     d.el.style.zIndex = 31;
-    d.el.style.pointerEvents = 'none';
   });
 
   seesawChickens.right.forEach((d, i) => {
@@ -1915,7 +1925,6 @@ function repositionSeesawChickens() {
     d.el.style.left = d.x + 'px';
     d.el.style.top = d.y + 'px';
     d.el.style.zIndex = 31;
-    d.el.style.pointerEvents = 'none';
   });
 }
 
