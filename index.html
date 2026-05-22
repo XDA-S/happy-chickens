@@ -245,12 +245,18 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
 }
 
 /* ===== Seesaw ===== */
-#seesaw-container{position:absolute;z-index:20;pointer-events:none}
+#seesaw-container{position:absolute;z-index:30;pointer-events:none}
 #seesaw-plank{transform-origin:center center;transition:transform 0.4s ease-in-out}
 .seesaw-end{cursor:pointer;pointer-events:all}
 .seesaw-end-hint{animation:seesawPulse 1.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes seesawPulse{0%,100%{opacity:0.3;transform:scale(0.85)}50%{opacity:0.75;transform:scale(1.2)}}
 .seesaw-selected{filter:drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 4px #FF9800)}
+/* ===== Seesaw selection hint text ===== */
+.seesaw-hint-arrow{position:absolute;z-index:32;pointer-events:none;color:#fff;font-size:18px;font-weight:700;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.55);white-space:nowrap;opacity:0;transform:translate(-50%,-50%);transition:opacity .25s}
+.seesaw-hint-arrow.show{opacity:1;animation:seesawHintFloat 1.2s ease-in-out infinite}
+@keyframes seesawHintFloat{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-10px)}}
+.seesaw-hint-label{position:absolute;z-index:31;pointer-events:none;color:#FFE082;font-size:13px;font-weight:600;text-align:center;text-shadow:0 2px 6px rgba(0,0,0,.55);white-space:nowrap;opacity:0;transform:translate(-50%,0);transition:opacity .25s}
+.seesaw-hint-label.show{opacity:0.9}
 </style>
 </head>
 <body>
@@ -1282,6 +1288,23 @@ function initChickens() {
   });
 }
 
+// Check if a position is inside the seesaw no-go zone
+function isInSeesawZone(x, y) {
+  if (!seesawEl) return false;
+  const ssLeft = parseFloat(seesawEl.style.left);
+  const ssTop = parseFloat(seesawEl.style.top);
+  const plankW = seesawEl._plankW;
+  const fulcX = seesawEl._fulcX;
+  const fulcY = seesawEl._fulcY;
+  // Expand zone generously to keep chickens away from ends
+  const zoneCenterX = ssLeft + fulcX;
+  const zoneCenterY = ssTop + fulcY;
+  const zoneHalfW = plankW / 2 + 50;
+  const zoneHalfH = 55;
+  return x > zoneCenterX - zoneHalfW && x < zoneCenterX + zoneHalfW &&
+         y > zoneCenterY - zoneHalfH && y < zoneCenterY + zoneHalfH;
+}
+
 // Pick a new target that avoids clustering with other chicks
 function pickNewTarget(d) {
   const b = getPenBounds();
@@ -1292,11 +1315,13 @@ function pickNewTarget(d) {
     d.state = 'idle'; d.stateTimer = 1000 + Math.random()*2000; return;
   }
 
-  // Try up to 8 candidate positions and pick the one farthest from other chicks
+  // Try up to 12 candidate positions, avoid seesaw zone
   let bestX = 0, bestY = 0, bestScore = -1;
-  for (let attempt = 0; attempt < 8; attempt++) {
+  for (let attempt = 0; attempt < 12; attempt++) {
     const tx = b.left + pad + Math.random() * availW;
     const ty = b.top + pad + Math.random() * availH;
+    // Skip positions inside seesaw no-go zone
+    if (isInSeesawZone(tx, ty)) continue;
     // Score = min distance to other chicks (higher is better)
     let minDist = Infinity;
     chickenData.forEach(other => {
@@ -1360,8 +1385,10 @@ function updateChicken(d, dt) {
 
   // ===== ON SEESAW STATE =====
   if (d.state === 'on_seesaw') {
-    // Position is managed by repositionSeesawChickens(), just update zIndex
-    d.el.style.zIndex = 25;
+    // Position is managed by repositionSeesawChickens()
+    // Sit on top of plank (z=21) but pointer-events:none so clicks pass through to seesaw ends
+    d.el.style.zIndex = 29; // Above seesaw plank, below hints
+    d.el.style.pointerEvents = 'none';
     return;
   }
 
@@ -1414,6 +1441,26 @@ function updateChicken(d, dt) {
   } else if (d.state === 'pecking') {
     if (d.stateTimer <= 0) { d.state='idle'; d.stateTimer=1000+Math.random()*2000; d.el.classList.remove('pecking'); d.el.classList.add('idle'); }
   }
+
+  // Push chickens away from seesaw zone
+  if (isInSeesawZone(d.x + d.sz.w/2, d.y + d.sz.h/2)) {
+    const ssLeft = parseFloat(seesawEl.style.left);
+    const ssTop = parseFloat(seesawEl.style.top);
+    const fulcX = seesawEl._fulcX;
+    const fulcY = seesawEl._fulcY;
+    const zoneCX = ssLeft + fulcX;
+    const zoneCY = ssTop + fulcY;
+    const dx = d.x + d.sz.w/2 - zoneCX;
+    const dy = d.y + d.sz.h/2 - zoneCY;
+    const pushDist = Math.sqrt(dx*dx + dy*dy) || 1;
+    d.x += (dx / pushDist) * 2.5;
+    d.y += (dy / pushDist) * 2.5;
+    // Also reset target to avoid walking back into zone
+    if (d.state === 'walking' && isInSeesawZone(d.targetX, d.targetY)) {
+      pickNewTarget(d);
+    }
+  }
+
   d.el.style.left = d.x+'px'; d.el.style.top = d.y+'px';
   d.el.style.transform = 'scaleX('+(d.facingRight?1:-1)+')';
   d.el.style.zIndex = Math.round(d.y);
@@ -1664,12 +1711,44 @@ function createSeesaw() {
   // Event listeners for seesaw ends
   function handleSeesawEnd(endSide, e) {
     e.stopPropagation();
+    const arrow = seesawEl._hintArrow;
+    const label = seesawEl._hintLabel;
+
+    // If this end already has chickens and nothing is selected → pop one off
+    if (!seesawSelectedEnd && seesawChickens[endSide].length > 0) {
+      const popped = seesawChickens[endSide].pop();
+      popped.state = 'idle';
+      popped.stateTimer = 800 + Math.random() * 1200;
+      popped.el.classList.remove('running', 'walking', 'pecking');
+      popped.el.classList.add('idle');
+      popped.el.style.pointerEvents = 'auto';
+      // Place chicken near the seesaw end on the ground
+      const b = getPenBounds();
+      const ssLeft = parseFloat(seesawEl.style.left);
+      const ssTop = parseFloat(seesawEl.style.top);
+      const fulcX = seesawEl._fulcX;
+      const fulcY = seesawEl._fulcY;
+      const plankW = seesawEl._plankW;
+      const groundY = ssTop + fulcY + 20;
+      const groundX = ssLeft + fulcX + (endSide === 'left' ? -plankW/2 : plankW/2);
+      popped.x = Math.max(b.left, Math.min(groundX - popped.sz.w/2, b.right - popped.sz.w));
+      popped.y = Math.max(b.top, Math.min(groundY, b.bottom - popped.sz.h));
+      popped.el.style.left = popped.x + 'px';
+      popped.el.style.top = popped.y + 'px';
+      popped.el.style.zIndex = Math.round(popped.y);
+      updateSeesawTilt();
+      createSparkles(popped.x + popped.sz.w/2, popped.y + popped.sz.h/2, 4, ['#FFD700','#FF9800']);
+      return;
+    }
+
     if (seesawSelectedEnd === endSide) {
       // Deselect
       seesawSelectedEnd = null;
       leftEnd.classList.remove('seesaw-selected');
       rightEnd.classList.remove('seesaw-selected');
       plankGroup.classList.remove('seesaw-selected');
+      arrow.classList.remove('show');
+      label.classList.remove('show');
     } else {
       seesawSelectedEnd = endSide;
       if (endSide === 'left') {
@@ -1683,12 +1762,26 @@ function createSeesaw() {
         rightHint.setAttribute('fill', '#FF9800');
         leftHint.setAttribute('fill', '#FFD700');
       }
-      // Show particle feedback
-      const game = document.getElementById('game');
-      const gr = game.getBoundingClientRect();
+      // Position hint above the selected end
+      const gameEl = document.getElementById('game');
+      const gr = gameEl.getBoundingClientRect();
       const sr = seesawEl.getBoundingClientRect();
-      const ex = sr.left - gr.left + (endSide === 'left' ? 30 : sr.width - 30);
-      const ey = sr.top - gr.top + sr.height / 2;
+      const ssLeft = sr.left - gr.left;
+      const ssTop = sr.top - gr.top;
+      const fulcX = seesawEl._fulcX;
+      const fulcY = seesawEl._fulcY;
+      const plankW = seesawEl._plankW;
+      const endX = ssLeft + fulcX + (endSide === 'left' ? -plankW/2 + 25 : plankW/2 - 25);
+      const endY = ssTop + fulcY - 60;
+      arrow.style.left = endX + 'px';
+      arrow.style.top = endY + 'px';
+      arrow.classList.add('show');
+      label.style.left = endX + 'px';
+      label.style.top = (endY + 32) + 'px';
+      label.classList.add('show');
+      // Show particle feedback
+      const ex = ssLeft + (endSide === 'left' ? 30 : sr.width - 30);
+      const ey = ssTop + sr.height / 2;
       createSparkles(ex, ey, 5, ['#FFD700','#FF9800','#FFF9C4']);
     }
   }
@@ -1697,6 +1790,33 @@ function createSeesaw() {
   leftEnd.addEventListener('touchstart', e => { e.preventDefault(); handleSeesawEnd('left', e); }, {passive:false});
   rightEnd.addEventListener('click', e => handleSeesawEnd('right', e));
   rightEnd.addEventListener('touchstart', e => { e.preventDefault(); handleSeesawEnd('right', e); }, {passive:false});
+
+  // ===== Seesaw hint text overlays =====
+  // Arrow pointing down at selected end
+  const hintArrow = document.createElement('div');
+  hintArrow.className = 'seesaw-hint-arrow';
+  hintArrow.textContent = '👇';
+  game.appendChild(hintArrow);
+  // Subtitle label
+  const hintLabel = document.createElement('div');
+  hintLabel.className = 'seesaw-hint-label';
+  hintLabel.textContent = '再点小鸡放这里';
+  game.appendChild(hintLabel);
+
+  // Store references for update
+  seesawEl._hintArrow = hintArrow;
+  seesawEl._hintLabel = hintLabel;
+  seesawEl._leftEnd = leftEnd;
+  seesawEl._rightEnd = rightEnd;
+  seesawEl._leftHint = leftHint;
+  seesawEl._rightHint = rightHint;
+  seesawEl._endHandle = handleSeesawEnd;
+  seesawEl._cx = cx;
+  seesawEl._cy = cy;
+  seesawEl._fulcX = fulcX;
+  seesawEl._fulcY = fulcY - legH;
+  seesawEl._plankW = plankW;
+  seesawEl._plankH = plankH;
 }
 
 let seesawOscTimer = null;
@@ -1755,7 +1875,8 @@ function repositionSeesawChickens() {
     d.y = ssTop + fulcY - lArmLen * Math.sin(angle) - d.sz.h;
     d.el.style.left = d.x + 'px';
     d.el.style.top = d.y + 'px';
-    d.el.style.zIndex = 25;
+    d.el.style.zIndex = 29;
+    d.el.style.pointerEvents = 'none';
   });
 
   seesawChickens.right.forEach((d, i) => {
@@ -1764,7 +1885,8 @@ function repositionSeesawChickens() {
     d.y = ssTop + fulcY + rArmLen * Math.sin(angle) - d.sz.h;
     d.el.style.left = d.x + 'px';
     d.el.style.top = d.y + 'px';
-    d.el.style.zIndex = 25;
+    d.el.style.zIndex = 29;
+    d.el.style.pointerEvents = 'none';
   });
 }
 
@@ -1781,6 +1903,10 @@ function placeChickenOnSeesaw(d, side) {
     return;
   }
 
+  // Hide hint text
+  if (seesawEl && seesawEl._hintArrow) { seesawEl._hintArrow.classList.remove('show'); }
+  if (seesawEl && seesawEl._hintLabel) { seesawEl._hintLabel.classList.remove('show'); }
+
   // Rooster special: eject all chickens from opposite side
   if (d.type === 'rooster') {
     const oppSide = side === 'left' ? 'right' : 'left';
@@ -1790,23 +1916,59 @@ function placeChickenOnSeesaw(d, side) {
     d.state = 'on_seesaw';
     updateSeesawTilt();
 
-    // Animate ejected chickens flying off
+    // Animate ejected chickens with parabolic arc
     ejected.forEach((ed, i) => {
       setTimeout(() => {
-        ed.state = 'fleeing';
-        ed.fleePhase = 0;
-        const game = document.getElementById('game');
-        ed.targetX = (oppSide === 'left') ? -100 : game.offsetWidth + 100;
-        ed.targetY = getPenBounds().bottom - 50;
-        ed.speed = 1.2 + Math.random() * 0.4;
-        ed.el.classList.add('running');
+        const gameEl = document.getElementById('game');
+        const ssLeft = parseFloat(seesawEl.style.left);
+        const ssTop = parseFloat(seesawEl.style.top);
+        // Start position: where chicken is on the seesaw
+        const startX = ed.x, startY = ed.y;
+        // Target: fly off screen in opposite direction with upward arc
+        const dirX = oppSide === 'left' ? -1 : 1;
+        const endX = oppSide === 'left' ? -120 : gameEl.offsetWidth + 120;
+        const endY = getPenBounds().bottom - 60;
+        // Parabolic: random upward initial velocity
+        const vy0 = -(4 + Math.random() * 5); // upward
+        const g = 0.25; // gravity per frame
+        const totalFrames = 35 + Math.floor(Math.random() * 15);
+        const vx = (endX - startX) / totalFrames;
+        let frame = 0, y = startY, vy = vy0;
         ed.el.style.zIndex = 200;
-        createParticle(ed.x + ed.sz.w/2, ed.y, '💨');
-      }, i * 150);
+        ed.el.style.pointerEvents = 'none';
+        ed.el.classList.add('running');
+        createParticle(startX + ed.sz.w/2, startY, '💨');
+        const arcInterval = setInterval(() => {
+          frame++;
+          y += vy;
+          vy += g;
+          const x = startX + vx * frame;
+          // Rotation based on velocity direction
+          const rot = (vy * 3);
+          ed.el.style.left = x + 'px';
+          ed.el.style.top = y + 'px';
+          ed.el.style.transform = `rotate(${Math.max(-60, Math.min(60, rot))}deg)`;
+          if (frame >= totalFrames) {
+            clearInterval(arcInterval);
+            ed.el.style.opacity = '0';
+            ed.el.style.transition = 'opacity 0.3s';
+            setTimeout(() => {
+              const idx = chickenData.indexOf(ed);
+              if (idx >= 0) chickenData.splice(idx, 1);
+              ed.el.remove();
+            }, 350);
+            ed.state = 'gone';
+          }
+        }, 16);
+      }, i * 180);
     });
     playRoosterEjectSound();
     createSparkles(d.x + d.sz.w/2, d.y, 12, ['#FF4444','#FF8800','#FFDD00']);
     seesawSelectedEnd = null;
+    // Clear selection visuals
+    if (seesawPlankEl) {
+      seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
+    }
     return;
   }
 
@@ -1821,8 +1983,6 @@ function placeChickenOnSeesaw(d, side) {
   }
 
   // Feedback
-  const game = document.getElementById('game');
-  const gr = game.getBoundingClientRect();
   createSparkles(d.x + d.sz.w/2, d.y + d.sz.h/2, 6, ['#A5D6A7','#81C784','#FFD700']);
 }
 
