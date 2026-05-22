@@ -773,20 +773,33 @@ let bgMusicGain = null;
 let bgMusicStarted = false;
 
 // ===== NuoNuo Sound =====
+let cachedVoices = [];
+function loadVoices() {
+  if ('speechSynthesis' in window) {
+    cachedVoices = speechSynthesis.getVoices();
+    if (cachedVoices.length === 0) {
+      speechSynthesis.onvoiceschanged = () => {
+        cachedVoices = speechSynthesis.getVoices();
+      };
+    }
+  }
+}
 function playNuoNuoSound() {
   preloadSounds();
   if ('speechSynthesis' in window) {
     const u = new SpeechSynthesisUtterance('诺诺创意作品');
-    u.lang = 'zh-CN'; u.rate = 0.72; u.pitch = 1.15; u.volume = 1.0;
+    u.lang = 'zh-CN'; u.rate = 0.72; u.pitch = 1.18; u.volume = 1.0;
     // Try to use a gentle female voice
-    const voices = speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      const femaleVoice = voices.find(v =>
-        v.lang.startsWith('zh') &&
-        (v.name.includes('Female') || v.name.includes('婷婷') || v.name.toLowerCase().includes('xiaoxiao') || v.name.includes('慧'))
-      );
-      if (femaleVoice) u.voice = femaleVoice;
-    }
+    const voices = cachedVoices.length > 0 ? cachedVoices : speechSynthesis.getVoices();
+    const femaleVoice = voices.find(v => {
+      if (!v.lang.startsWith('zh')) return false;
+      const n = v.name.toLowerCase();
+      return n.includes('ting') || n.includes('婷婷') ||
+             n.includes('xiaoxiao') || n.includes('慧') ||
+             n.includes('hui') || n.includes('mei-jia') ||
+             n.includes('lili') || n.includes('female');
+    });
+    if (femaleVoice) u.voice = femaleVoice;
     speechSynthesis.speak(u);
   }
   playNuoNuoMelody();
@@ -1502,13 +1515,7 @@ function handleChickenClick(el) {
   const type = el.dataset.type;
   const d = chickenData.find(c => c.el === el);
 
-  // If a seesaw end is selected, place this chicken on seesaw
-  if (seesawSelectedEnd && d && d.state !== 'fleeing' && d.state !== 'gone') {
-    placeChickenOnSeesaw(d, seesawSelectedEnd);
-    return;
-  }
-
-  // If chicken is on seesaw, clicking it removes it from seesaw
+  // If chicken is on seesaw, clicking it removes it (priority over placement)
   if (d && d.state === 'on_seesaw') {
     ['left', 'right'].forEach(s => {
       const idx = seesawChickens[s].indexOf(d);
@@ -1518,7 +1525,14 @@ function handleChickenClick(el) {
     d.stateTimer = 800 + Math.random() * 1200;
     d.el.classList.remove('running');
     d.el.classList.add('idle');
+    d.el.style.pointerEvents = 'auto';
     updateSeesawTilt();
+    return;
+  }
+
+  // If a seesaw end is selected, place this chicken on seesaw
+  if (seesawSelectedEnd && d && d.state !== 'fleeing' && d.state !== 'gone') {
+    placeChickenOnSeesaw(d, seesawSelectedEnd);
     return;
   }
 
@@ -1964,21 +1978,46 @@ function placeChickenOnSeesaw(d, side) {
           ed.el.style.transform = `rotate(${Math.max(-120, Math.min(120, rot))}deg) scaleX(${dirX > 0 ? 1 : -1})`;
           if (frame >= totalFrames) {
             clearInterval(arcInterval);
-            // Land in pen with a bounce effect
-            ed.el.style.transform = 'scaleX(' + (dirX > 0 ? 1 : -1) + ')';
-            ed.el.style.zIndex = Math.round(endY);
-            ed.state = 'idle';
-            ed.stateTimer = 1200 + Math.random() * 2000;
-            ed.el.classList.remove('running', 'active');
-            ed.el.classList.add('idle');
-            ed.el.style.pointerEvents = 'auto';
-            createSparkles(endX + ed.sz.w/2, endY - 10, 6, ['#FFD700','#FFF9C4','#A5D6A7']);
+            // Fade out and remove
+            ed.el.style.transition = 'opacity 0.3s';
+            ed.el.style.opacity = '0';
+            ed.state = 'gone';
+            setTimeout(() => {
+              const idx = chickenData.indexOf(ed);
+              if (idx >= 0) chickenData.splice(idx, 1);
+              ed.el.remove();
+            }, 350);
           }
         }, 16);
       }, i * 180);
     });
     playRoosterEjectSound();
     createSparkles(d.x + d.sz.w/2, d.y, 12, ['#FF4444','#FF8800','#FFDD00']);
+    // Rooster walks off the seesaw after ejecting
+    const roosterD = d;
+    const roosterSide = side;
+    setTimeout(() => {
+      const idx = seesawChickens[roosterSide].indexOf(roosterD);
+      if (idx >= 0) seesawChickens[roosterSide].splice(idx, 1);
+      roosterD.state = 'idle';
+      roosterD.stateTimer = 1000 + Math.random() * 2000;
+      roosterD.el.classList.remove('running', 'walking', 'pecking', 'active');
+      roosterD.el.classList.add('idle');
+      roosterD.el.style.pointerEvents = 'auto';
+      // Position near seesaw on ground
+      const b2 = getPenBounds();
+      const ssl = parseFloat(seesawEl.style.left);
+      const sst = parseFloat(seesawEl.style.top);
+      const gx = ssl + seesawEl._fulcX + (roosterSide === 'left' ? -90 : 90);
+      const gy = sst + seesawEl._fulcY + 30;
+      roosterD.x = Math.max(b2.left, Math.min(gx - roosterD.sz.w/2, b2.right - roosterD.sz.w));
+      roosterD.y = Math.max(b2.top, Math.min(gy, b2.bottom - roosterD.sz.h));
+      roosterD.el.style.left = roosterD.x + 'px';
+      roosterD.el.style.top = roosterD.y + 'px';
+      roosterD.el.style.zIndex = Math.round(roosterD.y);
+      updateSeesawTilt();
+      createSparkles(roosterD.x + roosterD.sz.w/2, roosterD.y, 6, ['#FFD700','#FF9800']);
+    }, 1400);
     // Keep selection active after rooster placement for continuous clicks
     if (seesawChickens[side].length >= SEESAW_MAX_PER_SIDE) {
       seesawSelectedEnd = null;
@@ -2008,6 +2047,7 @@ function placeChickenOnSeesaw(d, side) {
 
 // ===== Init =====
 function init() {
+  loadVoices();
   generateFencePosts();
   initChickens();
   createSeesaw();
