@@ -586,7 +586,7 @@ let seesawSelectedEnd = null;  // 'left' | 'right' | null
 // chickens on seesaw: {left: [chickenData...], right: [chickenData...]}
 const seesawChickens = { left: [], right: [] };
 const SEESAW_MAX_PER_SIDE = 3;
-const SEESAW_TILT_MAX = 22;    // degrees max tilt
+const SEESAW_TILT_MAX = 30;    // degrees max tilt
 
 function getSeesawWeight(side) {
   let w = 0;
@@ -787,19 +787,34 @@ function loadVoices() {
 function playNuoNuoSound() {
   preloadSounds();
   if ('speechSynthesis' in window) {
+    // Stop any ongoing speech to avoid overlap
+    speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance('诺诺创意作品');
-    u.lang = 'zh-CN'; u.rate = 0.72; u.pitch = 1.18; u.volume = 1.0;
-    // Try to use a gentle female voice
+    u.lang = 'zh-CN'; u.rate = 0.65; u.pitch = 1.12; u.volume = 1.0;
+    // Try to find the most natural-sounding zh-CN voice
     const voices = cachedVoices.length > 0 ? cachedVoices : speechSynthesis.getVoices();
-    const femaleVoice = voices.find(v => {
-      if (!v.lang.startsWith('zh')) return false;
-      const n = v.name.toLowerCase();
-      return n.includes('ting') || n.includes('婷婷') ||
-             n.includes('xiaoxiao') || n.includes('慧') ||
-             n.includes('hui') || n.includes('mei-jia') ||
-             n.includes('lili') || n.includes('female');
+    // Score voices: prefer local + premium quality, then female
+    let bestVoice = null, bestScore = -1;
+    voices.forEach(v => {
+      if (!v.lang.startsWith('zh')) return;
+      let score = 0;
+      const n = (v.name || '').toLowerCase();
+      // Prefer local (non-network) voices — usually higher quality
+      if (v.localService) score += 3;
+      // Premium/high-quality indicators
+      if (n.includes('premium') || n.includes('enhanced') || n.includes('wavenet')) score += 5;
+      // Female voice indicators
+      if (n.includes('ting') || n.includes('婷婷') || n.includes('xiaoxiao') ||
+          n.includes('lili') || n.includes('mei-jia') || n.includes('慧') ||
+          n.includes('hui') || n.includes('female')) score += 2;
+      if (score > bestScore) { bestScore = score; bestVoice = v; }
     });
-    if (femaleVoice) u.voice = femaleVoice;
+    // Fallback: just any zh-CN voice with localService
+    if (!bestVoice) {
+      bestVoice = voices.find(v => v.lang.startsWith('zh') && v.localService) ||
+                  voices.find(v => v.lang.startsWith('zh'));
+    }
+    if (bestVoice) u.voice = bestVoice;
     speechSynthesis.speak(u);
   }
   playNuoNuoMelody();
@@ -1284,7 +1299,7 @@ function initChickens() {
   const penH = bounds.bottom - bounds.top;
   if (penW < 50 || penH < 50) return;
   const configs = [
-    {id:'rooster', type:'rooster', x:0.55, y:0.2, speed:0.38},
+    {id:'rooster', type:'rooster', x:0.78, y:0.2, speed:0.38},
     {id:'hen',     type:'hen',     x:0.2,  y:0.45, speed:0.28},
     {id:'chick1',  type:'chick',  x:0.12, y:0.65, speed:0.55},
     {id:'chick2',  type:'chick',  x:0.48, y:0.72, speed:0.5},
@@ -1496,7 +1511,7 @@ function gameLoop(time) {
   if (seesawOscActive && seesawPlankEl) {
     const elapsed = time - seesawOscStart;
     const period = 2200; // 2.2s per full cycle — gentle and natural
-    const angle = Math.sin(elapsed / period * Math.PI * 2) * 6;
+    const angle = Math.sin(elapsed / period * Math.PI * 2) * 10;
     seesawPlankEl.style.transform = `rotate(${angle}deg)`;
     seesawTargetAngle = angle;
   }
@@ -1608,10 +1623,10 @@ function createSeesaw() {
   // Position seesaw in middle of pen
   const cx = (b.left + b.right) / 2;
   const cy = b.top + (b.bottom - b.top) * 0.45;
-  const plankW = Math.min((b.right - b.left) * 0.55, 280);
+  const plankW = Math.min((b.right - b.left) * 0.55, 320);
   const plankH = 14;
-  const legH = 36;
-  const totalW = plankW + 60;
+  const legH = 50;
+  const totalW = plankW + 80;
   const totalH = legH + plankH + 20;
 
   seesawEl = document.createElement('div');
@@ -1706,7 +1721,7 @@ function createSeesaw() {
   const leftEnd = document.createElementNS(svgNS, 'rect');
   leftEnd.setAttribute('x', plankX);
   leftEnd.setAttribute('y', plankY - 10);
-  leftEnd.setAttribute('width', '70');
+  leftEnd.setAttribute('width', '80');
   leftEnd.setAttribute('height', plankH + 20);
   leftEnd.setAttribute('fill', 'transparent');
   leftEnd.classList.add('seesaw-end');
@@ -1715,9 +1730,9 @@ function createSeesaw() {
 
   // Right clickable end zone
   const rightEnd = document.createElementNS(svgNS, 'rect');
-  rightEnd.setAttribute('x', plankX + plankW - 70);
+  rightEnd.setAttribute('x', plankX + plankW - 80);
   rightEnd.setAttribute('y', plankY - 10);
-  rightEnd.setAttribute('width', '70');
+  rightEnd.setAttribute('width', '80');
   rightEnd.setAttribute('height', plankH + 20);
   rightEnd.setAttribute('fill', 'transparent');
   rightEnd.classList.add('seesaw-end');
