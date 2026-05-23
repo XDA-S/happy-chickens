@@ -245,6 +245,7 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
   .fence-post::after{border-left-width:4px;border-right-width:4px;border-bottom-width:6px;top:-8px}
   .fence-gate-post{width:10px}
   .fence-gate-post::before{border-left-width:6px;border-right-width:6px;border-bottom-width:10px;top:-9px}
+  .egg{width:18px;height:23px}
 }
 
 /* ===== Seesaw ===== */
@@ -1233,17 +1234,21 @@ function showEgg(henEl) {
   const egg = document.createElement('div'); egg.className = 'egg';
   const r = henEl.getBoundingClientRect();
   const gr = document.getElementById('game').getBoundingClientRect();
-  const eggX = r.left - gr.left + r.width / 2 - 14;
-  const eggY = r.top - gr.top + r.height - 8;
-  egg.style.left = eggX + 'px';
-  egg.style.top = eggY + 'px';
+  // Append first to read actual rendered size (respects mobile CSS media query)
   document.getElementById('game').appendChild(egg);
+  const eggRect = egg.getBoundingClientRect();
+  const eggHalfW = eggRect.width / 2;
+  const eggHalfH = eggRect.height / 2;
+  const eggCenterX = r.left - gr.left + r.width / 2;
+  const eggCenterY = r.top - gr.top + r.height - eggHalfH + 2;
+  egg.style.left = (eggCenterX - eggHalfW) + 'px';
+  egg.style.top = (r.top - gr.top + r.height - eggRect.height + 4) + 'px';
   requestAnimationFrame(() => requestAnimationFrame(() => {
     egg.classList.add('show');
-    createSparkles(r.left - gr.left + r.width / 2, r.top - gr.top + r.height - 5, 8,
+    createSparkles(eggCenterX, r.top - gr.top + r.height - 5, 8,
       ['#FFD700','#FFF176','#FFEE58','#FFE082']);
     // Make nearby chicks quickly move away from the egg
-    scatterChicksFromEgg(eggX + 14, eggY + 18);
+    scatterChicksFromEgg(eggCenterX, eggCenterY);
   }));
   egg.addEventListener('click', (e) => { e.stopPropagation(); hatchEgg(egg); });
   egg.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); hatchEgg(egg); }, {passive:false});
