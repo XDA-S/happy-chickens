@@ -237,8 +237,8 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
 @media(max-width:600px){
   .title-banner{font-size:22px;padding:7px 20px;letter-spacing:3px}
   .nuonuo-banner{font-size:13px;padding:4px 16px;top:52px}
-  .chicken.rooster{width:100px;height:120px}.chicken.hen{width:85px;height:90px}.chicken.chick{width:44px;height:38px}
-  .chicken.rooster .chicken-shadow{width:60px;height:11px}.chicken.hen .chicken-shadow{width:48px;height:9px}.chicken.chick .chicken-shadow{width:24px;height:5px}
+  .chicken.rooster{width:80px;height:96px}.chicken.hen{width:68px;height:72px}.chicken.chick{width:36px;height:30px}
+  .chicken.rooster .chicken-shadow{width:50px;height:9px}.chicken.hen .chicken-shadow{width:40px;height:7px}.chicken.chick .chicken-shadow{width:20px;height:4px}
   .sun{width:55px;height:55px}.fence-rail-h{height:8px}.fence-rail-v{width:8px}.fence-post{width:11px}
   .fence-post::before{border-left-width:7px;border-right-width:7px;border-bottom-width:11px;top:-10px}
   .fence-post::after{border-left-width:4px;border-right-width:4px;border-bottom-width:8px;top:-10px}
@@ -257,6 +257,16 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
 @keyframes seesawHintFloat{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-10px)}}
 .seesaw-hint-label{position:absolute;z-index:31;pointer-events:none;color:#FFE082;font-size:13px;font-weight:600;text-align:center;text-shadow:0 2px 6px rgba(0,0,0,.55);white-space:nowrap;opacity:0;transform:translate(-50%,0);transition:opacity .25s}
 .seesaw-hint-label.show{opacity:0.9}
+
+/* ===== Stats Panel ===== */
+#stats-panel{position:absolute;bottom:10px;right:10px;z-index:60;pointer-events:none;
+  background:rgba(0,0,0,0.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  border-radius:10px;padding:6px 10px;color:rgba(255,255,255,0.65);
+  font-size:11px;line-height:1.7;text-shadow:0 1px 3px rgba(0,0,0,.4);
+  border:1px solid rgba(255,255,255,0.12);min-width:100px}
+#stats-panel .stat-row{display:flex;justify-content:space-between;gap:10px}
+#stats-panel .stat-label{opacity:0.75}
+#stats-panel .stat-val{font-weight:600;color:rgba(255,255,255,0.85)}
 </style>
 </head>
 <body>
@@ -270,6 +280,14 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
 </div>
 
 <div id="game">
+
+<!-- Stats Panel -->
+<div id="stats-panel">
+  <div class="stat-row"><span class="stat-label">登录人次</span><span class="stat-val" id="stat-visits">-</span></div>
+  <div class="stat-row"><span class="stat-label">总时长</span><span class="stat-val" id="stat-total">-</span></div>
+  <div class="stat-row"><span class="stat-label">本次</span><span class="stat-val" id="stat-session">0:00</span></div>
+  <div class="stat-row"><span class="stat-label">弹飞🐥</span><span class="stat-val" id="stat-ejected">0</span></div>
+</div>
 
 <!-- Sky -->
 <div class="sky"></div>
@@ -1477,7 +1495,7 @@ function updateChicken(d, dt) {
     if (d.stateTimer <= 0) { d.state='idle'; d.stateTimer=1000+Math.random()*2000; d.el.classList.remove('pecking'); d.el.classList.add('idle'); }
   }
 
-  // Push chickens away from seesaw zone
+  // Push chickens away from seesaw zone — stronger push, also cancel idle/walking state
   if (isInSeesawZone(d.x + d.sz.w/2, d.y + d.sz.h/2)) {
     const ssLeft = parseFloat(seesawEl.style.left);
     const ssTop = parseFloat(seesawEl.style.top);
@@ -1485,13 +1503,16 @@ function updateChicken(d, dt) {
     const fulcY = seesawEl._fulcY;
     const zoneCX = ssLeft + fulcX;
     const zoneCY = ssTop + fulcY;
-    const dx = d.x + d.sz.w/2 - zoneCX;
-    const dy = d.y + d.sz.h/2 - zoneCY;
+    let dx = d.x + d.sz.w/2 - zoneCX;
+    let dy = d.y + d.sz.h/2 - zoneCY;
     const pushDist = Math.sqrt(dx*dx + dy*dy) || 1;
-    d.x += (dx / pushDist) * 2.5;
-    d.y += (dy / pushDist) * 2.5;
-    // Also reset target to avoid walking back into zone
-    if (d.state === 'walking' && isInSeesawZone(d.targetX, d.targetY)) {
+    // If chicken is nearly centered (dx/dy tiny) push them in a random direction
+    if (pushDist < 10) { dx = (Math.random()-0.5)*10; dy = (Math.random()-0.5)*10; }
+    const pushStrength = 4.5;
+    d.x += (dx / pushDist) * pushStrength;
+    d.y += (dy / pushDist) * pushStrength;
+    // Force a new target outside zone; also interrupt idle/pecking states
+    if (d.state !== 'fleeing' && d.state !== 'on_seesaw' && d.state !== 'gone') {
       pickNewTarget(d);
     }
   }
@@ -1623,10 +1644,13 @@ function createSeesaw() {
   // Position seesaw in middle of pen
   const cx = (b.left + b.right) / 2;
   const cy = b.top + (b.bottom - b.top) * 0.45;
-  const plankW = Math.min((b.right - b.left) * 0.55, 320);
-  const plankH = 14;
-  const legH = 50;
-  const totalW = plankW + 80;
+  // Scale seesaw smaller on mobile screens
+  const isMobile = gw <= 600;
+  const seesawScale = isMobile ? 0.7 : 1.0;
+  const plankW = Math.min((b.right - b.left) * 0.55, 320) * seesawScale;
+  const plankH = 14 * seesawScale;
+  const legH = 50 * seesawScale;
+  const totalW = plankW + 80 * seesawScale;
   const totalH = legH + plankH + 20;
 
   seesawEl = document.createElement('div');
@@ -1646,8 +1670,9 @@ function createSeesaw() {
   // Fulcrum (triangle support)
   const fulcX = totalW / 2;
   const fulcY = totalH - 10;
+  const triW = 16 * seesawScale;
   const tri = document.createElementNS(svgNS, 'polygon');
-  tri.setAttribute('points', `${fulcX},${fulcY - legH} ${fulcX - 16},${fulcY} ${fulcX + 16},${fulcY}`);
+  tri.setAttribute('points', `${fulcX},${fulcY - legH} ${fulcX - triW},${fulcY} ${fulcX + triW},${fulcY}`);
   tri.setAttribute('fill', '#8D6E63');
   tri.setAttribute('stroke', '#6D4C41');
   tri.setAttribute('stroke-width', '2');
@@ -1655,9 +1680,10 @@ function createSeesaw() {
 
   // Base bar
   const base = document.createElementNS(svgNS, 'rect');
-  base.setAttribute('x', fulcX - 28);
+  const baseW = 56 * seesawScale;
+  base.setAttribute('x', fulcX - baseW/2);
   base.setAttribute('y', fulcY - 6);
-  base.setAttribute('width', '56');
+  base.setAttribute('width', baseW);
   base.setAttribute('height', '10');
   base.setAttribute('rx', '4');
   base.setAttribute('fill', '#6D4C41');
@@ -1718,10 +1744,11 @@ function createSeesaw() {
   plankGroup.appendChild(rightHint);
 
   // Left clickable end zone
+  const endZoneW = 80 * seesawScale;
   const leftEnd = document.createElementNS(svgNS, 'rect');
   leftEnd.setAttribute('x', plankX);
   leftEnd.setAttribute('y', plankY - 10);
-  leftEnd.setAttribute('width', '80');
+  leftEnd.setAttribute('width', endZoneW);
   leftEnd.setAttribute('height', plankH + 20);
   leftEnd.setAttribute('fill', 'transparent');
   leftEnd.classList.add('seesaw-end');
@@ -1730,9 +1757,9 @@ function createSeesaw() {
 
   // Right clickable end zone
   const rightEnd = document.createElementNS(svgNS, 'rect');
-  rightEnd.setAttribute('x', plankX + plankW - 80);
+  rightEnd.setAttribute('x', plankX + plankW - endZoneW);
   rightEnd.setAttribute('y', plankY - 10);
-  rightEnd.setAttribute('width', '80');
+  rightEnd.setAttribute('width', endZoneW);
   rightEnd.setAttribute('height', plankH + 20);
   rightEnd.setAttribute('fill', 'transparent');
   rightEnd.classList.add('seesaw-end');
@@ -1967,7 +1994,9 @@ function placeChickenOnSeesaw(d, side) {
     d.state = 'on_seesaw';
     updateSeesawTilt();
 
-    // Animate ejected chickens with parabolic arc
+    // Animate ejected chickens with parabolic arc — all fly to same random side
+    const flingDir = Math.random() < 0.5 ? 'left' : 'right';
+    bumpEjected(ejected.length);
     ejected.forEach((ed, i) => {
       setTimeout(() => {
         const gameEl = document.getElementById('game');
@@ -1975,15 +2004,17 @@ function placeChickenOnSeesaw(d, side) {
         const ssTop = parseFloat(seesawEl.style.top);
         // Start position: where chicken is on the seesaw
         const startX = ed.x, startY = ed.y;
-        // Target: land inside the pen with a high cartoonish arc
+        // Target: fly high off screen on the chosen fling side
         const b = getPenBounds();
-        const dirX = oppSide === 'left' ? -1 : 1;
-        const endX = oppSide === 'left' ? b.left + 60 : b.right - 120;
-        const endY = b.bottom - 40 + Math.random() * 20;
-        // Parabolic: big upward launch for cartoon bounce effect
-        const vy0 = -(16 + Math.random() * 10); // high upward velocity
-        const g = 0.22; // slightly lower gravity for long hang time
-        const totalFrames = 55 + Math.floor(Math.random() * 25);
+        const dirX = flingDir === 'left' ? -1 : 1;
+        // End off-screen for clean disappearance
+        const gameEl2 = document.getElementById('game');
+        const endX = flingDir === 'left' ? -100 - Math.random()*60 : (gameEl2.offsetWidth + 100 + Math.random()*60);
+        const endY = b.top + (b.bottom - b.top) * (0.1 + Math.random() * 0.3); // land somewhere mid-height
+        // High parabolic launch for cartoonish effect
+        const vy0 = -(18 + Math.random() * 10); // strong upward velocity
+        const g = 0.20; // gentle gravity for long hang time
+        const totalFrames = 65 + Math.floor(Math.random() * 30);
         const vx = (endX - startX) / totalFrames;
         let frame = 0, y = startY, vy = vy0;
         ed.el.style.zIndex = 200;
@@ -2075,6 +2106,7 @@ function init() {
   generateFencePosts();
   initChickens();
   createSeesaw();
+  initStats();
   requestAnimationFrame(gameLoop);
 
   const nb = document.getElementById('nuonuo-banner');
@@ -2182,6 +2214,48 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(safeInit));
 } else {
   requestAnimationFrame(safeInit);
+}
+
+// ===== Stats System =====
+let statsEjectedCount = 0;
+let statsSessionStart = 0;
+let statsIntervalId = null;
+
+function initStats() {
+  // Load from localStorage
+  const visits = parseInt(localStorage.getItem('hc_visits') || '0') + 1;
+  localStorage.setItem('hc_visits', visits);
+  const totalSec = parseInt(localStorage.getItem('hc_total_sec') || '0');
+  statsSessionStart = Date.now();
+
+  document.getElementById('stat-visits').textContent = visits;
+  document.getElementById('stat-total').textContent = formatTime(totalSec);
+  document.getElementById('stat-ejected').textContent = '0';
+
+  // Update session timer every second
+  statsIntervalId = setInterval(() => {
+    const sess = Math.floor((Date.now() - statsSessionStart) / 1000);
+    document.getElementById('stat-session').textContent = formatTime(sess);
+    // Also save total
+    const prevTotal = parseInt(localStorage.getItem('hc_total_sec') || '0');
+    localStorage.setItem('hc_total_sec', prevTotal + 1);
+    const updatedTotal = prevTotal + 1;
+    document.getElementById('stat-total').textContent = formatTime(updatedTotal);
+  }, 1000);
+}
+
+function bumpEjected(count) {
+  statsEjectedCount += count;
+  const el = document.getElementById('stat-ejected');
+  if (el) el.textContent = statsEjectedCount;
+}
+
+function formatTime(sec) {
+  if (sec < 60) return sec + 's';
+  const m = Math.floor(sec / 60), s = sec % 60;
+  if (m < 60) return m + ':' + String(s).padStart(2,'0');
+  const h = Math.floor(m / 60), rm = m % 60;
+  return h + 'h' + rm + 'm';
 }
 
 function safeInit() {
