@@ -228,17 +228,17 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
 .grass-detail{position:absolute;z-index:7;pointer-events:none}
 .hay-bale{position:absolute;z-index:5;pointer-events:none}
 
-/* ===== Hint ===== */
-.hint{position:absolute;bottom:3%;left:50%;transform:translateX(-50%);
-  color:rgba(255,255,255,.8);font-size:13px;text-shadow:1px 1px 3px rgba(0,0,0,.3);
-  z-index:50;animation:hintPulse 2.5s ease-in-out infinite}
-@keyframes hintPulse{0%,100%{opacity:.5}50%{opacity:1}}
+/* ===== Gate Hint ===== */
+.gate-hint{position:absolute;top:86px;left:50%;transform:translateX(-50%);
+  color:rgba(255,255,255,.45);font-size:11px;text-shadow:1px 1px 3px rgba(0,0,0,.3);
+  z-index:50;animation:hintPulse 2.5s ease-in-out infinite;white-space:nowrap;letter-spacing:1px}
+@keyframes hintPulse{0%,100%{opacity:.35}50%{opacity:.65}}
 
 @media(max-width:600px){
   .title-banner{font-size:22px;padding:7px 20px;letter-spacing:3px}
   .nuonuo-banner{font-size:13px;padding:4px 16px;top:52px}
-  .chicken.rooster{width:80px;height:96px}.chicken.hen{width:68px;height:72px}.chicken.chick{width:36px;height:30px}
-  .chicken.rooster .chicken-shadow{width:50px;height:9px}.chicken.hen .chicken-shadow{width:40px;height:7px}.chicken.chick .chicken-shadow{width:20px;height:4px}
+  .chicken.rooster{width:40px;height:48px}.chicken.hen{width:34px;height:36px}.chicken.chick{width:18px;height:15px}
+  .chicken.rooster .chicken-shadow{width:26px;height:5px}.chicken.hen .chicken-shadow{width:20px;height:4px}.chicken.chick .chicken-shadow{width:10px;height:2px}
   .sun{width:55px;height:55px}.fence-rail-h{height:8px}.fence-rail-v{width:8px}.fence-post{width:11px}
   .fence-post::before{border-left-width:7px;border-right-width:7px;border-bottom-width:11px;top:-10px}
   .fence-post::after{border-left-width:4px;border-right-width:4px;border-bottom-width:8px;top:-10px}
@@ -249,21 +249,24 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
 #seesaw-plank{transform-origin:center center;transition:transform 0.4s ease-in-out}
 .seesaw-end{cursor:pointer;pointer-events:all}
 .seesaw-end-hint{animation:seesawPulse 1.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.seesaw-ring{opacity:0;fill:none;stroke:rgba(255,215,0,0.4);stroke-width:3;transition:opacity .3s;transform-box:fill-box;transform-origin:center}
+.seesaw-ring.active{opacity:1;animation:seesawRingPulse 0.9s ease-in-out infinite}
+@keyframes seesawRingPulse{0%,100%{opacity:0.25;transform:scale(0.85)}50%{opacity:0.7;transform:scale(1.25)}}
 @keyframes seesawPulse{0%,100%{opacity:0.3;transform:scale(0.85)}50%{opacity:0.75;transform:scale(1.2)}}
 .seesaw-selected{filter:drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 4px #FF9800)}
-/* ===== Seesaw selection hint text ===== */
-.seesaw-hint-arrow{position:absolute;z-index:32;pointer-events:none;color:#fff;font-size:18px;font-weight:700;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.55);white-space:nowrap;opacity:0;transform:translate(-50%,-50%);transition:opacity .25s}
-.seesaw-hint-arrow.show{opacity:1;animation:seesawHintFloat 1.2s ease-in-out infinite}
-@keyframes seesawHintFloat{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-10px)}}
-.seesaw-hint-label{position:absolute;z-index:31;pointer-events:none;color:#FFE082;font-size:13px;font-weight:600;text-align:center;text-shadow:0 2px 6px rgba(0,0,0,.55);white-space:nowrap;opacity:0;transform:translate(-50%,0);transition:opacity .25s}
-.seesaw-hint-label.show{opacity:0.9}
 
 /* ===== Stats Panel ===== */
-#stats-panel{position:absolute;bottom:10px;right:10px;z-index:60;pointer-events:none;
+#stats-toggle{position:absolute;top:8px;left:8px;z-index:60;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.25);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  color:rgba(255,255,255,0.75);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,255,255,0.15);transition:background .2s,transform .15s;user-select:none;line-height:1}
+#stats-toggle:hover,#stats-toggle:active{background:rgba(0,0,0,0.4);transform:scale(1.1)}
+#stats-panel{position:absolute;top:8px;left:42px;z-index:60;pointer-events:none;
   background:rgba(0,0,0,0.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
   border-radius:10px;padding:6px 10px;color:rgba(255,255,255,0.65);
   font-size:11px;line-height:1.7;text-shadow:0 1px 3px rgba(0,0,0,.4);
-  border:1px solid rgba(255,255,255,0.12);min-width:100px}
+  border:1px solid rgba(255,255,255,0.12);min-width:100px;opacity:0;transform:translateX(-8px);transition:opacity .25s,transform .25s}
+#stats-panel.expanded{opacity:1;transform:translateX(0)}
 #stats-panel .stat-row{display:flex;justify-content:space-between;gap:10px}
 #stats-panel .stat-label{opacity:0.75}
 #stats-panel .stat-val{font-weight:600;color:rgba(255,255,255,0.85)}
@@ -281,12 +284,14 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
 
 <div id="game">
 
-<!-- Stats Panel -->
+<!-- Stats Toggle + Panel -->
+<div id="stats-toggle">ⓘ</div>
 <div id="stats-panel">
   <div class="stat-row"><span class="stat-label">登录人次</span><span class="stat-val" id="stat-visits">-</span></div>
   <div class="stat-row"><span class="stat-label">总时长</span><span class="stat-val" id="stat-total">-</span></div>
   <div class="stat-row"><span class="stat-label">本次</span><span class="stat-val" id="stat-session">0:00</span></div>
   <div class="stat-row"><span class="stat-label">弹飞🐥</span><span class="stat-val" id="stat-ejected">0</span></div>
+  <div class="stat-row"><span class="stat-label">放学离开</span><span class="stat-val" id="stat-fled">0</span></div>
 </div>
 
 <!-- Sky -->
@@ -580,7 +585,7 @@ html,body{width:100%;height:100%;overflow:hidden;touch-action:manipulation;-webk
 </div>
 
 <!-- Hint -->
-<div class="hint">碰下小鸡们试试看～！</div>
+<div class="gate-hint">碰下小鸡们试试看～</div>
 
 </div><!-- end #game -->
 
@@ -1004,21 +1009,25 @@ function startFarmWind() {
   farmWindSource.start();
 }
 
-function playRoosterEjectSound() {
+function playRoosterEjectSound(chickCount) {
+  chickCount = Math.max(1, Math.min(chickCount || 1, 5));
   // Boing + chick scatter sounds
   const c = getAC(), t = c.currentTime;
-  // Boing: pitch-sweep up
-  const o = c.createOscillator(), g = c.createGain();
-  o.type = 'sine';
-  o.frequency.setValueAtTime(200, t);
-  o.frequency.exponentialRampToValueAtTime(900, t + 0.25);
-  o.frequency.exponentialRampToValueAtTime(400, t + 0.5);
-  g.gain.setValueAtTime(0.18, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-  o.connect(g); g.connect(c.destination);
-  o.start(t); o.stop(t + 0.5);
-  // Multiple chick sounds
-  for (let i = 0; i < 4; i++) setTimeout(() => playChickSound(), i * 80 + 100);
+  // Boing: pitch-sweep up (one boing per ejected chick)
+  for (let i = 0; i < chickCount; i++) {
+    const delay = i * 0.12;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(200, t + delay);
+    o.frequency.exponentialRampToValueAtTime(900, t + delay + 0.2);
+    o.frequency.exponentialRampToValueAtTime(400, t + delay + 0.4);
+    g.gain.setValueAtTime(0.15, t + delay);
+    g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.4);
+    o.connect(g); g.connect(c.destination);
+    o.start(t + delay); o.stop(t + delay + 0.4);
+  }
+  // Chick chirps — one per ejected chick
+  for (let i = 0; i < chickCount; i++) setTimeout(() => playChickSound(), i * 120 + 150);
 }
 
 function playFarmAnimalMoo() {
@@ -1187,6 +1196,32 @@ function createParticle(x, y, emoji) {
   setTimeout(() => el.remove(), 1700);
 }
 
+function scatterChicksFromEgg(eggCenterX, eggCenterY) {
+  const scatterRadius = 55;
+  chickenData.forEach(d => {
+    if (d.type !== 'chick' || d.state === 'fleeing' || d.state === 'gone' || d.state === 'on_seesaw') return;
+    const cx = d.x + d.sz.w / 2;
+    const cy = d.y + d.sz.h / 2;
+    const dx = cx - eggCenterX;
+    const dy = cy - eggCenterY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < scatterRadius) {
+      // Quickly run away from egg direction
+      const b = getPenBounds();
+      const dirX = dx / (dist || 1);
+      const dirY = dy / (dist || 1);
+      d.targetX = Math.max(b.left + 5, Math.min(d.x + dirX * 80, b.right - d.sz.w - 5));
+      d.targetY = Math.max(b.top + 5, Math.min(d.y + dirY * 80, b.bottom - d.sz.h - 5));
+      d.walkDuration = 800 + Math.random() * 400;
+      d.stateTimer = d.walkDuration;
+      d.state = 'walking';
+      d.speed = 0.9 + Math.random() * 0.4; // faster scatter
+      d.el.classList.remove('idle','pecking');
+      d.el.classList.add('walking');
+    }
+  });
+}
+
 // ===== Egg System =====
 let currentEgg = null;
 
@@ -1195,13 +1230,17 @@ function showEgg(henEl) {
   const egg = document.createElement('div'); egg.className = 'egg';
   const r = henEl.getBoundingClientRect();
   const gr = document.getElementById('game').getBoundingClientRect();
-  egg.style.left = (r.left - gr.left + r.width / 2 - 14) + 'px';
-  egg.style.top = (r.top - gr.top + r.height - 8) + 'px';
+  const eggX = r.left - gr.left + r.width / 2 - 14;
+  const eggY = r.top - gr.top + r.height - 8;
+  egg.style.left = eggX + 'px';
+  egg.style.top = eggY + 'px';
   document.getElementById('game').appendChild(egg);
   requestAnimationFrame(() => requestAnimationFrame(() => {
     egg.classList.add('show');
     createSparkles(r.left - gr.left + r.width / 2, r.top - gr.top + r.height - 5, 8,
       ['#FFD700','#FFF176','#FFEE58','#FFE082']);
+    // Make nearby chicks quickly move away from the egg
+    scatterChicksFromEgg(eggX + 14, eggY + 18);
   }));
   egg.addEventListener('click', (e) => { e.stopPropagation(); hatchEgg(egg); });
   egg.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); hatchEgg(egg); }, {passive:false});
@@ -1419,6 +1458,7 @@ function updateChicken(d, dt) {
         d.targetY = document.getElementById('game').offsetHeight + 100;
       } else {
         // Off screen — remove
+        bumpFled();
         d.el.style.opacity = '0';
         d.el.style.transition = 'opacity 0.3s';
         setTimeout(() => {
@@ -1572,6 +1612,15 @@ function handleChickenClick(el) {
     d.el.classList.add('idle');
     d.el.style.pointerEvents = 'auto';
     updateSeesawTilt();
+    // Clear selection rings if both sides are now empty
+    if (seesawChickens.left.length === 0 && seesawChickens.right.length === 0) {
+      seesawSelectedEnd = null;
+      if (seesawEl && seesawEl._leftRing) seesawEl._leftRing.classList.remove('active');
+      if (seesawEl && seesawEl._rightRing) seesawEl._rightRing.classList.remove('active');
+      if (seesawPlankEl) {
+        seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
+      }
+    }
     return;
   }
 
@@ -1646,7 +1695,7 @@ function createSeesaw() {
   const cy = b.top + (b.bottom - b.top) * 0.45;
   // Scale seesaw smaller on mobile screens
   const isMobile = gw <= 600;
-  const seesawScale = isMobile ? 0.7 : 1.0;
+  const seesawScale = isMobile ? 0.35 : 1.0;
   const plankW = Math.min((b.right - b.left) * 0.55, 320) * seesawScale;
   const plankH = 14 * seesawScale;
   const legH = 50 * seesawScale;
@@ -1743,6 +1792,22 @@ function createSeesaw() {
   rightHint.classList.add('seesaw-end-hint');
   plankGroup.appendChild(rightHint);
 
+  // Left outer ring (invisible until selected)
+  const leftRing = document.createElementNS(svgNS, 'circle');
+  leftRing.setAttribute('cx', plankX + 18);
+  leftRing.setAttribute('cy', plankY + plankH / 2);
+  leftRing.setAttribute('r', '22');
+  leftRing.classList.add('seesaw-ring');
+  plankGroup.appendChild(leftRing);
+
+  // Right outer ring (invisible until selected)
+  const rightRing = document.createElementNS(svgNS, 'circle');
+  rightRing.setAttribute('cx', plankX + plankW - 18);
+  rightRing.setAttribute('cy', plankY + plankH / 2);
+  rightRing.setAttribute('r', '22');
+  rightRing.classList.add('seesaw-ring');
+  plankGroup.appendChild(rightRing);
+
   // Left clickable end zone
   const endZoneW = 80 * seesawScale;
   const leftEnd = document.createElementNS(svgNS, 'rect');
@@ -1785,8 +1850,8 @@ function createSeesaw() {
   // Event listeners for seesaw ends
   function handleSeesawEnd(endSide, e) {
     e.stopPropagation();
-    const arrow = seesawEl._hintArrow;
-    const label = seesawEl._hintLabel;
+    const leftRing = seesawEl._leftRing;
+    const rightRing = seesawEl._rightRing;
 
     // If this end already has chickens and nothing is selected → pop one off
     if (!seesawSelectedEnd && seesawChickens[endSide].length > 0) {
@@ -1816,13 +1881,15 @@ function createSeesaw() {
     }
 
     if (seesawSelectedEnd === endSide) {
-      // Deselect
+      // Deselect: hide both rings
       seesawSelectedEnd = null;
       leftEnd.classList.remove('seesaw-selected');
       rightEnd.classList.remove('seesaw-selected');
       plankGroup.classList.remove('seesaw-selected');
-      arrow.classList.remove('show');
-      label.classList.remove('show');
+      leftRing.classList.remove('active');
+      rightRing.classList.remove('active');
+      leftHint.setAttribute('fill', '#FFD700');
+      rightHint.setAttribute('fill', '#FFD700');
     } else {
       // Check if this end is full (can't add more)
       if (seesawChickens[endSide].length >= SEESAW_MAX_PER_SIDE) {
@@ -1837,30 +1904,21 @@ function createSeesaw() {
         rightEnd.classList.remove('seesaw-selected');
         leftHint.setAttribute('fill', '#FF9800');
         rightHint.setAttribute('fill', '#FFD700');
+        leftRing.classList.add('active');
+        rightRing.classList.remove('active');
       } else {
         rightEnd.classList.add('seesaw-selected');
         leftEnd.classList.remove('seesaw-selected');
         rightHint.setAttribute('fill', '#FF9800');
         leftHint.setAttribute('fill', '#FFD700');
+        rightRing.classList.add('active');
+        leftRing.classList.remove('active');
       }
-      // Position hint above the selected end
-      const gameEl = document.getElementById('game');
-      const gr = gameEl.getBoundingClientRect();
+      // Particle feedback
       const sr = seesawEl.getBoundingClientRect();
+      const gr = document.getElementById('game').getBoundingClientRect();
       const ssLeft = sr.left - gr.left;
       const ssTop = sr.top - gr.top;
-      const fulcX = seesawEl._fulcX;
-      const fulcY = seesawEl._fulcY;
-      const plankW = seesawEl._plankW;
-      const endX = ssLeft + fulcX + (endSide === 'left' ? -plankW/2 + 25 : plankW/2 - 25);
-      const endY = ssTop + fulcY - 60;
-      arrow.style.left = endX + 'px';
-      arrow.style.top = endY + 'px';
-      arrow.classList.add('show');
-      label.style.left = endX + 'px';
-      label.style.top = (endY + 32) + 'px';
-      label.classList.add('show');
-      // Show particle feedback
       const ex = ssLeft + (endSide === 'left' ? 30 : sr.width - 30);
       const ey = ssTop + sr.height / 2;
       createSparkles(ex, ey, 5, ['#FFD700','#FF9800','#FFF9C4']);
@@ -1872,25 +1930,13 @@ function createSeesaw() {
   rightEnd.addEventListener('click', e => handleSeesawEnd('right', e));
   rightEnd.addEventListener('touchstart', e => { e.preventDefault(); handleSeesawEnd('right', e); }, {passive:false});
 
-  // ===== Seesaw hint text overlays =====
-  // Arrow pointing down at selected end
-  const hintArrow = document.createElement('div');
-  hintArrow.className = 'seesaw-hint-arrow';
-  hintArrow.textContent = '👇';
-  game.appendChild(hintArrow);
-  // Subtitle label
-  const hintLabel = document.createElement('div');
-  hintLabel.className = 'seesaw-hint-label';
-  hintLabel.textContent = '再点小鸡放这里';
-  game.appendChild(hintLabel);
-
   // Store references for update
-  seesawEl._hintArrow = hintArrow;
-  seesawEl._hintLabel = hintLabel;
   seesawEl._leftEnd = leftEnd;
   seesawEl._rightEnd = rightEnd;
   seesawEl._leftHint = leftHint;
   seesawEl._rightHint = rightHint;
+  seesawEl._leftRing = leftRing;
+  seesawEl._rightRing = rightRing;
   seesawEl._endHandle = handleSeesawEnd;
   seesawEl._cx = cx;
   seesawEl._cy = cy;
@@ -2046,7 +2092,7 @@ function placeChickenOnSeesaw(d, side) {
         }, 16);
       }, i * 180);
     });
-    playRoosterEjectSound();
+    playRoosterEjectSound(ejected.length);
     createSparkles(d.x + d.sz.w/2, d.y, 12, ['#FF4444','#FF8800','#FFDD00']);
     // Rooster walks off the seesaw after ejecting
     const roosterD = d;
@@ -2071,6 +2117,15 @@ function placeChickenOnSeesaw(d, side) {
       roosterD.el.style.top = roosterD.y + 'px';
       roosterD.el.style.zIndex = Math.round(roosterD.y);
       updateSeesawTilt();
+      // Clear selection ring if the side is now empty
+      if (seesawChickens[roosterSide].length === 0 && seesawChickens.left.length === 0 && seesawChickens.right.length === 0) {
+        seesawSelectedEnd = null;
+        if (seesawEl && seesawEl._leftRing) seesawEl._leftRing.classList.remove('active');
+        if (seesawEl && seesawEl._rightRing) seesawEl._rightRing.classList.remove('active');
+        if (seesawPlankEl) {
+          seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
+        }
+      }
       createSparkles(roosterD.x + roosterD.sz.w/2, roosterD.y, 6, ['#FFD700','#FF9800']);
     }, 1400);
     // Keep selection active after rooster placement for continuous clicks
@@ -2079,6 +2134,8 @@ function placeChickenOnSeesaw(d, side) {
       if (seesawPlankEl) {
         seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
       }
+      if (seesawEl && seesawEl._leftRing) seesawEl._leftRing.classList.remove('active');
+      if (seesawEl && seesawEl._rightRing) seesawEl._rightRing.classList.remove('active');
     }
     return;
   }
@@ -2089,8 +2146,8 @@ function placeChickenOnSeesaw(d, side) {
   // Keep selection active for continuous clicks; deselect only when side is full
   if (seesawChickens[side].length >= SEESAW_MAX_PER_SIDE) {
     seesawSelectedEnd = null;
-    if (seesawEl && seesawEl._hintArrow) { seesawEl._hintArrow.classList.remove('show'); }
-    if (seesawEl && seesawEl._hintLabel) { seesawEl._hintLabel.classList.remove('show'); }
+    if (seesawEl && seesawEl._leftRing) { seesawEl._leftRing.classList.remove('active'); }
+    if (seesawEl && seesawEl._rightRing) { seesawEl._rightRing.classList.remove('active'); }
     if (seesawPlankEl) {
       seesawPlankEl.querySelectorAll('.seesaw-end').forEach(e => e.classList.remove('seesaw-selected'));
     }
@@ -2218,19 +2275,39 @@ if (document.readyState === 'loading') {
 
 // ===== Stats System =====
 let statsEjectedCount = 0;
+let statsFledCount = 0;
 let statsSessionStart = 0;
 let statsIntervalId = null;
 
 function initStats() {
-  // Load from localStorage
+  // Load from localStorage (persistent across versions)
   const visits = parseInt(localStorage.getItem('hc_visits') || '0') + 1;
   localStorage.setItem('hc_visits', visits);
   const totalSec = parseInt(localStorage.getItem('hc_total_sec') || '0');
+  statsEjectedCount = parseInt(localStorage.getItem('hc_ejected') || '0');
+  statsFledCount = parseInt(localStorage.getItem('hc_fled') || '0');
   statsSessionStart = Date.now();
 
   document.getElementById('stat-visits').textContent = visits;
   document.getElementById('stat-total').textContent = formatTime(totalSec);
-  document.getElementById('stat-ejected').textContent = '0';
+  document.getElementById('stat-ejected').textContent = statsEjectedCount;
+  document.getElementById('stat-fled').textContent = statsFledCount;
+
+  // Stats toggle
+  const toggle = document.getElementById('stats-toggle');
+  const panel = document.getElementById('stats-panel');
+  let statsExpanded = false;
+  function toggleStats(e) {
+    e.stopPropagation();
+    statsExpanded = !statsExpanded;
+    if (statsExpanded) {
+      panel.classList.add('expanded');
+    } else {
+      panel.classList.remove('expanded');
+    }
+  }
+  toggle.addEventListener('click', toggleStats);
+  toggle.addEventListener('touchstart', e => { e.preventDefault(); toggleStats(e); }, {passive:false});
 
   // Update session timer every second
   statsIntervalId = setInterval(() => {
@@ -2246,8 +2323,16 @@ function initStats() {
 
 function bumpEjected(count) {
   statsEjectedCount += count;
+  localStorage.setItem('hc_ejected', statsEjectedCount);
   const el = document.getElementById('stat-ejected');
   if (el) el.textContent = statsEjectedCount;
+}
+
+function bumpFled() {
+  statsFledCount += 1;
+  localStorage.setItem('hc_fled', statsFledCount);
+  const el = document.getElementById('stat-fled');
+  if (el) el.textContent = statsFledCount;
 }
 
 function formatTime(sec) {
